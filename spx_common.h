@@ -15,5 +15,6 @@
 #define FIFO_EXCHANGE "/tmp/spx_exchange_%d"
 #define FIFO_TRADER "/tmp/spx_trader_%d"
 #define FEE_PERCENTAGE 1
+#define PRODUCT_LENGTH (16)
 
 #endif
