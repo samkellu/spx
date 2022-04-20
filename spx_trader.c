@@ -1,10 +1,12 @@
 #include "spx_trader.h"
 
 int main(int argc, char ** argv) {
-    if (argc < 2) {
-        printf("Not enough arguments\n");
-        return 1;
-    }
+    // if (argc < 2) {
+    //     printf("Not enough arguments\n");
+    //     return 1;
+    // }
+    printf("This is the child process\n");
+    return 0;
 
     // register signal handler
 

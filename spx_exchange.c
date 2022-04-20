@@ -6,15 +6,60 @@
 
 #include "spx_exchange.h"
 
-// void process_command((void)(*p)(), char** arguments) {}
+void handle_invalid_bin(int errno) {
+		printf("%s Error: Given trader binary doesn't exist\n", LOG_PREFIX);
+		exit(0); // +++ replace with a graceful exit function
+}
 
-void buy_order() {}
+struct order* create_order(int type, int trader_id, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order* (*operation)(struct order*, struct order**), struct order** orders) {
+ // Adding order to the exchange's array of orders/ memory management stuff
+	struct order* new_order = malloc(sizeof(struct order));
+	new_order->type = type;
+	new_order->order_id = order_id;
+	memcpy(new_order->product, product, PRODUCT_LENGTH);
+	new_order->qty = qty;
+	new_order->price = price;
+	new_order->trader_id = trader_id;
 
-void sell_order() {}
+	new_order = operation(new_order, orders);
+	return new_order;
+}
+//
+// struct order* buy_order(int order_id, char product[PRODUCT_LENGTH], int qty, int price) {
+// 	// struct order checking for sells??
+// 	struct order* new_order = create_order(BUY, order_id, product, qty, price, &buy_order);
+// 	return new_order;
+// }
+//
+struct order* sell_order(struct order* new_order, struct order** orders) {
 
-void amend_order() {}
-
-void cancel_order() {}
+	int current_order = 0; // orders is null terminated, so 0 always exists
+	while (orders[current_order] != NULL) {
+		// Booleans to check if the current order is compatible with the new order
+		int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
+		int price_valid = (orders[current_order]->price >= new_order->price);
+		if (product_valid && price_valid) {
+			if (orders[current_order]->qty <= new_order->qty) {
+				// send signal to fill order to current_order.trader
+			}
+		}
+		current_order++;
+	}
+	return new_order;
+}
+//
+// struct order* amend_order(int order_id, int qty, int price) {
+// 	struct order* new_order = create_order(AMEND, order_id, NULL, qty, price, &amend_order);
+//
+// 	// del old struct order and replace
+// 	return new_order;
+// }
+//
+// struct order cancel_order(int struct order_id) {
+// 	// del struct order
+// 	// struct order checking for sells??
+// 	return NULL; // ?
+// }
 
 // Reads the products file and returns a list of the product's names
 char** read_products_file(char* fp) {
@@ -22,7 +67,7 @@ char** read_products_file(char* fp) {
 	if ((file = fopen(fp, "r")) == NULL) {
 		return NULL;
 	}
-
+	// Number of products in product file
 	char length_str[PRODUCT_LENGTH]; // +++ get actual length for this
 	fgets(length_str, PRODUCT_LENGTH, file);
 	int file_length = strtol(length_str, NULL, 10) + 1;
@@ -35,11 +80,72 @@ char** read_products_file(char* fp) {
 		product = fgets(product, PRODUCT_LENGTH, file);
 		products[index++] = strtok(product, "\n");;
 	}
+	fclose(file);
+
+	printf("%s Trading %d products: ", LOG_PREFIX, file_length - 1);
+
+	for (int index = 1; index < file_length; index++) {
+		printf("%s", products[index]);
+		if (index != file_length - 1) {
+			printf(" ");
+		} else {
+			printf("\n");
+		}
+	}
 	return products;
 }
 
+char** take_input() {
+	char input[MAX_INPUT], *token;
+	fgets(input, MAX_INPUT, stdin); // will be a pipe +++
+	char** arg_array = (char**) malloc(0);
+	int args_length = 0;
+
+	token = strtok(input, " ");
+	while (token != NULL) {
+		// Removing newline characters from the token
+		int char_index = 0;
+		while (token[char_index] != '\0') {
+			if (token[char_index] == '\n') {
+				token[char_index] = '\0';
+			}
+			char_index++;
+		}
+
+		// Allocating memory to store the token
+		arg_array = realloc(arg_array, (args_length + 1) * sizeof(char**));
+		char* arg = malloc(PRODUCT_LENGTH);
+		memcpy(arg, token, PRODUCT_LENGTH);
+		arg_array[args_length] = arg;
+
+		// Traverse to next token
+		token = strtok(NULL, " ");
+		args_length++;
+	}
+	return arg_array;
+}
+
+int* initialise_traders(int argc, char** argv) {
+	int* pid_array = malloc((argc - 2) * sizeof(int));
+	for (int i = 2; i < argc; i++) {
+		pid_array[i-2] = fork();
+		if (pid_array[i-2] == -1) {
+			pid_array[0] = -1;
+			return pid_array;
+		}
+		if (pid_array[i-2] == 0) {
+			if (execl(argv[i], "INSERT ARGS FOR TRADER HERE LOLO", (char*)NULL) == -1) {
+				kill(getppid(), SIGUSR2);
+				kill(getpid(), 9);
+			}
+		}
+		sleep(1);
+	}
+	return pid_array;
+}
+
 int main(int argc, char **argv) {
-	if (argc > 2) {
+	if (argc > 1) {
 		printf("%s Starting\n", LOG_PREFIX);
 		char** products = read_products_file(argv[1]);
 
@@ -47,17 +153,43 @@ int main(int argc, char **argv) {
 			printf("%s Error: Products file does not exist", LOG_PREFIX);
 			return 1;
 		}
-		int file_length = strtol(products[0], NULL, 10);
-		printf("%s Trading %d products: ", LOG_PREFIX, file_length);
-		for (int index = 1; index <= file_length; index++) {
-			printf("%s", products[index]);
-			if (index != file_length) {
-				printf(" ");
-			} else {
-				printf("\n");
+
+		// Starts all trader processes specified by command line arguments
+		signal(SIGUSR2, handle_invalid_bin);
+		int* pid_array = initialise_traders(argc, argv);
+		if (*pid_array == -1) {
+			printf("%s Fork failed\n", LOG_PREFIX);
+			return -1;
+		}
+
+		// Creates a null terminated array of orders
+		struct order** orders = malloc(sizeof(struct order));
+		orders[0] = (struct order*) NULL;
+
+		int running = 1;
+		while (running) {
+			printf("%s ", LOG_PREFIX);
+
+			char** arg_array = take_input();
+			if (strcmp(arg_array[0], "BUY") == 0) {
+				printf("buy");
+				// create_order(BUY, int order_id, char product[PRODUCT_LENGTH], int qty, int price, &buy_order)
+
+			} else if (strcmp(arg_array[0], "SELL") == 0) {
+				//Arg 2, consider how to get the trader id????? +++
+				struct order* new_order = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
+				printf("%s", new_order->product);
+
+			} else if (strcmp(arg_array[0], "AMEND") == 0) {
+				printf("amend");
+
+			} else if (strcmp(arg_array[0], "DEL") == 0) {
+				printf("del");
 			}
 		}
+		// Free all mem
 	} else {
+
 		printf("Not enough arguments"); //+++ check  messaging and arg lengths
 		return 1;
 	}
