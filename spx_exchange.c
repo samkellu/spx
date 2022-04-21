@@ -158,8 +158,8 @@ int* create_fifos(int argc, char** argv) {
 		free(fds);
 		return (int*)NULL;
 	}
-	fds[0] = open(path, O_NONBLOCK);
 	printf("%s Created FIFO %s\n", LOG_PREFIX, path);
+	fds[0] = open(path, O_NONBLOCK);
 
 	for (int i = 2; i < argc; i++) {
 		char path[PATH_LENGTH];
@@ -170,8 +170,8 @@ int* create_fifos(int argc, char** argv) {
 			free(fds);
 			return (int*)NULL;
 		}
-		fds[i-1] = open(path, O_NONBLOCK);
 		printf("%s Created FIFO %s\n", LOG_PREFIX, path);
+		fds[i-1] = open(path, O_NONBLOCK);
 	}
 	return fds;
 }
