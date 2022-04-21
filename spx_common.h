@@ -16,5 +16,7 @@
 #define FIFO_TRADER "/tmp/spx_trader_%d"
 #define FEE_PERCENTAGE 1
 #define PRODUCT_LENGTH (16)
+#define PATH_LENGTH (32)
+#define MAX_TRADERS_BYTES (4)
 
 #endif

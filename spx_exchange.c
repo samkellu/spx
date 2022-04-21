@@ -134,7 +134,10 @@ int* initialise_traders(int argc, char** argv) {
 			return pid_array;
 		}
 		if (pid_array[i-2] == 0) {
-			if (execl(argv[i], "INSERT ARGS FOR TRADER HERE LOLO", (char*)NULL) == -1) {
+			char trader_id[MAX_TRADERS_BYTES];
+			sprintf(trader_id, "%d", i-2);
+			printf("%s Starting trader %s (%s)\n", LOG_PREFIX, trader_id, argv[i]);
+			if (execl(argv[i], trader_id, (char*)NULL) == -1) {
 				kill(getppid(), SIGUSR2);
 				kill(getpid(), 9);
 			}
@@ -144,6 +147,35 @@ int* initialise_traders(int argc, char** argv) {
 	return pid_array;
 }
 
+int* create_fifos(int argc, char** argv) {
+	int* fds = malloc(sizeof(int) * (argc-1));
+	// +++ CHECK if there can be multiple exchanges???
+	char path[PATH_LENGTH];
+	snprintf(path, PATH_LENGTH, "/tmp/spx_exchange_%d", 0);
+	unlink(path);//+++
+
+	if (mkfifo(path, 0777) == -1) {//+++ check perms
+		free(fds);
+		return (int*)NULL;
+	}
+	fds[0] = open(path, O_NONBLOCK);
+	printf("%s Created FIFO %s\n", LOG_PREFIX, path);
+
+	for (int i = 2; i < argc; i++) {
+		char path[PATH_LENGTH];
+		snprintf(path, PATH_LENGTH, "/tmp/spx_trader_%d", i-2);
+		unlink(path);//+++
+
+		if (mkfifo(path, 0777) == -1) {//+++ check perms
+			free(fds);
+			return (int*)NULL;
+		}
+		fds[i-1] = open(path, O_NONBLOCK);
+		printf("%s Created FIFO %s\n", LOG_PREFIX, path);
+	}
+	return fds;
+}
+
 int main(int argc, char **argv) {
 	if (argc > 1) {
 		printf("%s Starting\n", LOG_PREFIX);
@@ -151,7 +183,29 @@ int main(int argc, char **argv) {
 
 		if (products == NULL) {
 			printf("%s Error: Products file does not exist", LOG_PREFIX);
-			return 1;
+			return -1;
+		}
+
+		int* fds = create_fifos(argc, argv);
+		if (fds == (int*)NULL) {
+			printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
+			return -1;
+		}
+
+		if (fds[0] == -1) {
+			printf("%s Error: Could not connect to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");//+++ willl have to change if we need multiple exchanges
+			return -1;
+		}
+		printf("%s Connected to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");
+
+		for (int i = 1; i < argc - 1; i++) {
+			if (fds[i] == -1) {
+				printf("%s Error: Could not connect to FIFO\n", LOG_PREFIX);
+				return -1;
+			}
+			char path[PATH_LENGTH];
+			snprintf(path, PATH_LENGTH, "/tmp/spx_trader_%d", i-1);
+			printf("%s Connected to %s\n", LOG_PREFIX, path);
 		}
 
 		// Starts all trader processes specified by command line arguments
