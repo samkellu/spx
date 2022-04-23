@@ -95,9 +95,9 @@ char** read_products_file(char* fp) {
 	return products;
 }
 
-char** take_input() {
+char** take_input(int fd) {
 	char input[MAX_INPUT], *token;
-	fgets(input, MAX_INPUT, stdin); // will be a pipe +++
+	read(fd, input, MAX_INPUT); // will be a pipe +++
 	char** arg_array = (char**) malloc(0);
 	int args_length = 0;
 
@@ -134,10 +134,12 @@ int* initialise_traders(int argc, char** argv) {
 			return pid_array;
 		}
 		if (pid_array[i-2] == 0) {
+			char ppid[MAX_PID];
 			char trader_id[MAX_TRADERS_BYTES];
+			sprintf(ppid, "%d", getppid());
 			sprintf(trader_id, "%d", i-2);
 			printf("%s Starting trader %s (%s)\n", LOG_PREFIX, trader_id, argv[i]);
-			if (execl(argv[i], trader_id, (char*)NULL) == -1) {
+			if (execl(argv[i], trader_id, ppid, (char*)NULL) == -1) {
 				kill(getppid(), SIGUSR2);
 				kill(getpid(), 9);
 			}
@@ -224,12 +226,14 @@ int main(int argc, char **argv) {
 		while (running) {
 			printf("%s ", LOG_PREFIX);
 
-			char** arg_array = take_input();
+			char** arg_array = take_input(fds[0]);
+			printf("%s", arg_array[0]);
 			if (strcmp(arg_array[0], "BUY") == 0) {
 				printf("buy");
 				// create_order(BUY, int order_id, char product[PRODUCT_LENGTH], int qty, int price, &buy_order)
 
 			} else if (strcmp(arg_array[0], "SELL") == 0) {
+				printf("%s", arg_array[0]);
 				//Arg 2, consider how to get the trader id????? +++
 				struct order* new_order = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
 				printf("%s", new_order->product);
@@ -240,6 +244,8 @@ int main(int argc, char **argv) {
 			} else if (strcmp(arg_array[0], "DEL") == 0) {
 				printf("del");
 			}
+
+			sleep(1); // Check for responsiveness, or add blocking io if necessary +++
 		}
 		// Free all mem
 	} else {

@@ -4,7 +4,6 @@
 #include "spx_common.h"
 
 #define LOG_PREFIX "[SPX]"
-#define MAX_INPUT (64)
 
 enum type {
   BUY=0,
