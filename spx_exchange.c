@@ -6,10 +6,18 @@
 
 #include "spx_exchange.h"
 
+int read_flag = 0;
+
 void handle_invalid_bin(int errno) {
 		printf("%s Error: Given trader binary doesn't exist\n", LOG_PREFIX);
 		exit(0); // +++ replace with a graceful exit function
 }
+
+void read_sig(int errno) {
+		printf("%s Reading in exchange\n", LOG_PREFIX);
+		read_flag = 1;
+}
+
 
 struct order* create_order(int type, int trader_id, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order* (*operation)(struct order*, struct order**), struct order** orders) {
  // Adding order to the exchange's array of orders/ memory management stuff
@@ -95,9 +103,9 @@ char** read_products_file(char* fp) {
 	return products;
 }
 
-char** take_input(int fd) {
+char** take_input() {
 	char input[MAX_INPUT], *token;
-	read(fd, input, MAX_INPUT); // will be a pipe +++
+	read(3, input, MAX_INPUT); // will be a pipe +++
 	char** arg_array = (char**) malloc(0);
 	int args_length = 0;
 
@@ -125,8 +133,21 @@ char** take_input(int fd) {
 	return arg_array;
 }
 
+int write_pipe(int fd, char* message, pid_t pid) {
+	if (strlen(message) + 1 < MAX_INPUT) {
+		if (fd == -1) {
+			return -1;
+		}
+		write(fd, message, MAX_INPUT);
+		kill(pid, SIGUSR1);
+		return 1;
+	}
+	return -1;
+}
+
 int* initialise_traders(int argc, char** argv) {
-	int* pid_array = malloc((argc - 2) * sizeof(int));
+	int* pid_array = malloc((argc - 1) * sizeof(int));
+	pid_array[argc - 1] = -1;
 	for (int i = 2; i < argc; i++) {
 		pid_array[i-2] = fork();
 		if (pid_array[i-2] == -1) {
@@ -151,6 +172,7 @@ int* initialise_traders(int argc, char** argv) {
 
 int* create_fifos(int argc, char** argv) {
 	int* fds = malloc(sizeof(int) * (argc-1));
+	fds[argc] = -1;
 	// +++ CHECK if there can be multiple exchanges???
 	char path[PATH_LENGTH];
 	snprintf(path, PATH_LENGTH, "/tmp/spx_exchange_%d", 0);
@@ -160,7 +182,7 @@ int* create_fifos(int argc, char** argv) {
 		free(fds);
 		return (int*)NULL;
 	}
-	fds[0] = open(path, O_NONBLOCK);
+	fds[0] = open(path, O_RDWR | O_NONBLOCK);
 	printf("%s Created FIFO %s\n", LOG_PREFIX, path);
 
 	for (int i = 2; i < argc; i++) {
@@ -172,7 +194,7 @@ int* create_fifos(int argc, char** argv) {
 			free(fds);
 			return (int*)NULL;
 		}
-		fds[i-1] = open(path, O_NONBLOCK);
+		fds[i-1] = open(path, O_RDWR | O_NONBLOCK);
 		printf("%s Created FIFO %s\n", LOG_PREFIX, path);
 	}
 	return fds;
@@ -218,31 +240,43 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 
+		int index = 1;
+		while (fds[index] >= 0) {
+			write_pipe(fds[index], "MARKET OPEN;", pid_array[index-1]);
+			index++;
+		}
+
+		signal(SIGUSR1, read_sig);
+
 		// Creates a null terminated array of orders
 		struct order** orders = malloc(sizeof(struct order));
 		orders[0] = (struct order*) NULL;
 
 		int running = 1;
 		while (running) {
-			printf("%s ", LOG_PREFIX);
+			// use select here to monitor pipe +++
+			if (read_flag) {
+				printf("%s ", LOG_PREFIX);
+				char** arg_array = take_input();
 
-			char** arg_array = take_input(fds[0]);
-			printf("%s", arg_array[0]);
-			if (strcmp(arg_array[0], "BUY") == 0) {
-				printf("buy");
-				// create_order(BUY, int order_id, char product[PRODUCT_LENGTH], int qty, int price, &buy_order)
+				if (strcmp(arg_array[0], "BUY") == 0) {
+					printf("buy");
+					// create_order(BUY, int order_id, char product[PRODUCT_LENGTH], int qty, int price, &buy_order)
 
-			} else if (strcmp(arg_array[0], "SELL") == 0) {
-				printf("%s", arg_array[0]);
-				//Arg 2, consider how to get the trader id????? +++
-				struct order* new_order = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
-				printf("%s", new_order->product);
+				} else if (strcmp(arg_array[0], "SELL") == 0) {
+					printf("%s", arg_array[0]);
+					//Arg 2, consider how to get the trader id????? +++
+					struct order* new_order = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
+					printf("%s", new_order->product);
+					fflush(stdout);
 
-			} else if (strcmp(arg_array[0], "AMEND") == 0) {
-				printf("amend");
+				} else if (strcmp(arg_array[0], "AMEND") == 0) {
+					printf("amend");
 
-			} else if (strcmp(arg_array[0], "DEL") == 0) {
-				printf("del");
+				} else if (strcmp(arg_array[0], "DEL") == 0) {
+					printf("del");
+				}
+				read_flag = 0;
 			}
 
 			sleep(1); // Check for responsiveness, or add blocking io if necessary +++
