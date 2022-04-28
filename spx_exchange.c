@@ -145,59 +145,39 @@ int write_pipe(int fd, char* message, pid_t pid) {
 	return -1;
 }
 
-int* initialise_traders(int argc, char** argv) {
-	int* pid_array = malloc((argc - 1) * sizeof(int));
-	pid_array[argc - 2] = -1;
-	for (int i = 2; i < argc; i++) {
-		pid_array[i-2] = fork();
-		if (pid_array[i-2] == -1) {
-			pid_array[0] = -1;
-			return pid_array;
-		}
-		if (pid_array[i-2] == 0) {
-			char ppid[MAX_PID];
-			char trader_id[MAX_TRADERS_BYTES];
-			sprintf(ppid, "%d", getppid());
-			sprintf(trader_id, "%d", i-2);
-			printf("%s Starting trader %s (%s)\n", LOG_PREFIX, trader_id, argv[i]);
-			if (execl(argv[i], trader_id, ppid, (char*)NULL) == -1) {
-				kill(getppid(), SIGUSR2);
-				kill(getpid(), 9);
-			}
-		}
-		sleep(1);
+int initialise_trader(char* path, int* pid_array, int index) {
+	pid_array[index] = fork();
+	if (pid_array[index] == -1) {
+		pid_array[index] = -1;
+		return -1;
 	}
-	return pid_array;
+	if (pid_array[index] == 0) {
+		char ppid[MAX_PID];
+		char trader_id[MAX_TRADERS_BYTES];
+		sprintf(ppid, "%d", getppid());
+		sprintf(trader_id, "%d", index);
+		printf("%s Starting trader %s (%s)\n", LOG_PREFIX, trader_id, path);
+		if (execl(path, trader_id, ppid, (char*)NULL) == -1) {
+			kill(getppid(), SIGUSR2);
+			kill(getpid(), 9);
+		}
+	}
+	sleep(0.2);
+	return 1;
 }
 
-int* create_fifos(int argc, char** argv) {
-	int* fds = malloc(sizeof(int) * (argc-1));
-	fds[argc - 2] = -1;
+int create_fifo(int* fds, char* path, int index) {
 	// +++ CHECK if there can be multiple exchanges???
-	char path[PATH_LENGTH];
-	snprintf(path, PATH_LENGTH, "/tmp/spx_exchange_%d", 0);
 	unlink(path);//+++
 
 	if (mkfifo(path, 0777) == -1) {//+++ check perms
-		free(fds);
-		return (int*)NULL;
+		fds[index] = -1;
+		printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
+		return -1;
 	}
-	fds[0] = open(path, O_RDWR | O_NONBLOCK);
+	fds[index] = open(path, O_RDWR | O_NONBLOCK);
 	printf("%s Created FIFO %s\n", LOG_PREFIX, path);
-
-	for (int i = 2; i < argc; i++) {
-		char path[PATH_LENGTH];
-		snprintf(path, PATH_LENGTH, "/tmp/spx_trader_%d", i-2);
-		unlink(path);//+++
-
-		if (mkfifo(path, 0777) == -1) {//+++ check perms
-			free(fds);
-			return (int*)NULL;
-		}
-		fds[i-1] = open(path, O_RDWR | O_NONBLOCK);
-		printf("%s Created FIFO %s\n", LOG_PREFIX, path);
-	}
-	return fds;
+	return 1;
 }
 
 int main(int argc, char **argv) {
@@ -210,19 +190,36 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 
-		int* fds = create_fifos(argc, argv);
-		if (fds == (int*)NULL) {
-			printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
-			return -1;
-		}
-		
-		// Starts all trader processes specified by command line arguments
+		int* fds = malloc(sizeof(int) * (argc - 1));
+		int* pid_array = malloc((argc - 1) * sizeof(int));
+
 		signal(SIGUSR2, handle_invalid_bin);
-		int* pid_array = initialise_traders(argc, argv);
-		if (*pid_array == -1) {
-			printf("%s Fork failed\n", LOG_PREFIX);
+
+		if (create_fifo(fds, "tmp/spx_exchange_0", 0) == -1) {
 			return -1;
 		}
+
+		for (int trader = 2; trader < argc; trader++) {
+			char path[PATH_LENGTH];
+			snprintf(path, PATH_LENGTH, "/tmp/spx_trader_%d", trader-2);
+			if (create_fifo(fds, path, trader-1) == -1) {
+				return -1;
+			}
+			if (fds[trader-2] == -1) {
+				printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
+				return -1;
+			}
+			// Starts trader processes specified by command line arguments
+			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
+				return -1;
+			}
+			if (pid_array[trader-2] == -1) {
+				printf("%s Fork failed\n", LOG_PREFIX);
+				return -1;
+			}
+		}
+
+
 
 		if (fds[0] == -1) {
 			printf("%s Error: Could not connect to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");//+++ willl have to change if we need multiple exchanges
