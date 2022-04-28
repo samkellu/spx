@@ -197,21 +197,22 @@ int main(int argc, char **argv) {
 
 		for (int trader = 2; trader < argc; trader++) {
 			char path[PATH_LENGTH];
-			snprintf(path, PATH_LENGTH, TRADER_PATH, trader-2);
-			if (create_fifo(fds, path, fd_cursor++) == -1) {
-				return -1;
-			}
 			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
 			if (create_fifo(fds, path, fd_cursor++) == -1) {
 				return -1;
 			}
-			// Starts trader processes specified by command line arguments
-			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
+
+			snprintf(path, PATH_LENGTH, TRADER_PATH, trader-2);
+			if (create_fifo(fds, path, fd_cursor++) == -1) {
 				return -1;
 			}
 			// +++ check connectivity if required
 			printf("%s Connected to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");
 			printf("%s Connected to %s\n", LOG_PREFIX, path);
+			// Starts trader processes specified by command line arguments
+			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
+				return -1;
+			}
 		}
 
 		int index = 1;
