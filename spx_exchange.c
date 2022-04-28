@@ -197,6 +197,7 @@ int main(int argc, char **argv) {
 		if (create_fifo(fds, "/tmp/spx_exchange_0", 0) == -1) {
 			return -1;
 		}
+		printf("%s Connected to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");
 
 		for (int trader = 2; trader < argc; trader++) {
 			char path[PATH_LENGTH];
@@ -208,26 +209,9 @@ int main(int argc, char **argv) {
 			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
 				return -1;
 			}
-		}
-
-
-
-		if (fds[0] == -1) {
-			printf("%s Error: Could not connect to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");//+++ willl have to change if we need multiple exchanges
-			return -1;
-		}
-		printf("%s Connected to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");
-
-		for (int i = 1; i < argc - 1; i++) {
-			if (fds[i] == -1) {
-				printf("%s Error: Could not connect to FIFO\n", LOG_PREFIX);
-				return -1;
-			}
-			char path[PATH_LENGTH];
-			snprintf(path, PATH_LENGTH, "/tmp/spx_trader_%d", i-1);
+			// +++ check connectivity if required
 			printf("%s Connected to %s\n", LOG_PREFIX, path);
 		}
-
 
 		int index = 1;
 		while (fds[index] >= 0) {
