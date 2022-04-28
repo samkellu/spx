@@ -151,19 +151,19 @@ int initialise_trader(char* path, int* pid_array, int index) {
 		printf("%s Fork failed\n", LOG_PREFIX);
 		return -1;
 	}
-	if (pid_array[index] == 0) {
-		char ppid[MAX_PID];
-		char trader_id[MAX_TRADERS_BYTES];
-		sprintf(ppid, "%d", getppid());
-		sprintf(trader_id, "%d", index);
-		printf("%s Starting trader %s (%s)\n", LOG_PREFIX, trader_id, path);
-		if (execl(path, trader_id, ppid, (char*)NULL) == -1) {
-			kill(getppid(), SIGUSR2);
-			kill(getpid(), 9);
-		}
+
+	if (pid_array[index] > 0) {
+		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
+		sleep(0.2);
+		return 1;
 	}
-	sleep(0.2);
-	return 1;
+
+	char ppid[MAX_PID];
+	sprintf(ppid, "%d", getppid());
+	if (execl(path, trader_id, ppid, (char*)NULL) == -1) {
+		kill(getppid(), SIGUSR2);
+		kill(getpid(), 9);
+	}
 }
 
 int create_fifo(int* fds, char* path, int index) {
