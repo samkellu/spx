@@ -215,6 +215,14 @@ int main(int argc, char **argv) {
 			printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
 			return -1;
 		}
+		
+		// Starts all trader processes specified by command line arguments
+		signal(SIGUSR2, handle_invalid_bin);
+		int* pid_array = initialise_traders(argc, argv);
+		if (*pid_array == -1) {
+			printf("%s Fork failed\n", LOG_PREFIX);
+			return -1;
+		}
 
 		if (fds[0] == -1) {
 			printf("%s Error: Could not connect to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");//+++ willl have to change if we need multiple exchanges
@@ -232,13 +240,6 @@ int main(int argc, char **argv) {
 			printf("%s Connected to %s\n", LOG_PREFIX, path);
 		}
 
-		// Starts all trader processes specified by command line arguments
-		signal(SIGUSR2, handle_invalid_bin);
-		int* pid_array = initialise_traders(argc, argv);
-		if (*pid_array == -1) {
-			printf("%s Fork failed\n", LOG_PREFIX);
-			return -1;
-		}
 
 		int index = 1;
 		while (fds[index] >= 0) {
