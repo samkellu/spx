@@ -203,17 +203,11 @@ int main(int argc, char **argv) {
 			char path[PATH_LENGTH];
 			snprintf(path, PATH_LENGTH, "/tmp/spx_trader_%d", trader-2);
 			if (create_fifo(fds, path, trader-1) == -1) {
-				return -1;
-			}
-			if (fds[trader-2] == -1) {
 				printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
 				return -1;
 			}
 			// Starts trader processes specified by command line arguments
 			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
-				return -1;
-			}
-			if (pid_array[trader-2] == -1) {
 				printf("%s Fork failed\n", LOG_PREFIX);
 				return -1;
 			}
