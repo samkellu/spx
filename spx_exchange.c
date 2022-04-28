@@ -165,7 +165,9 @@ int initialise_trader(char* path, int* pid_array, int index) {
 	if (execl(path, trader_id, ppid, (char*)NULL) == -1) {
 		kill(getppid(), SIGUSR2);
 		kill(getpid(), 9);
+		return -1;
 	}
+	return 1;
 }
 
 int create_fifo(int* fds, char* path, int index) {
