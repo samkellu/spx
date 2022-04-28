@@ -147,7 +147,7 @@ int write_pipe(int fd, char* message, pid_t pid) {
 
 int* initialise_traders(int argc, char** argv) {
 	int* pid_array = malloc((argc - 1) * sizeof(int));
-	pid_array[argc - 1] = -1;
+	pid_array[argc - 2] = -1;
 	for (int i = 2; i < argc; i++) {
 		pid_array[i-2] = fork();
 		if (pid_array[i-2] == -1) {
