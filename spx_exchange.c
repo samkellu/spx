@@ -189,20 +189,20 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 
-		int* fds = malloc(sizeof(int) * (argc - 1));
+		int* fds = malloc(sizeof(int) * 2 * (argc - 2));
+		int fd_cursor = 0;
 		int* pid_array = malloc((argc - 1) * sizeof(int));
 
 		signal(SIGUSR2, handle_invalid_bin);
 
-		if (create_fifo(fds, "/tmp/spx_exchange_0", 0) == -1) {
-			return -1;
-		}
-		printf("%s Connected to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");
-
 		for (int trader = 2; trader < argc; trader++) {
 			char path[PATH_LENGTH];
-			snprintf(path, PATH_LENGTH, "/tmp/spx_trader_%d", trader-2);
-			if (create_fifo(fds, path, trader-1) == -1) {
+			snprintf(path, PATH_LENGTH, TRADER_PATH, trader-2);
+			if (create_fifo(fds, path, fd_cursor++) == -1) {
+				return -1;
+			}
+			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
+			if (create_fifo(fds, path, fd_cursor++) == -1) {
 				return -1;
 			}
 			// Starts trader processes specified by command line arguments
@@ -210,6 +210,7 @@ int main(int argc, char **argv) {
 				return -1;
 			}
 			// +++ check connectivity if required
+			printf("%s Connected to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");
 			printf("%s Connected to %s\n", LOG_PREFIX, path);
 		}
 

@@ -4,6 +4,8 @@
 #include "spx_common.h"
 
 #define LOG_PREFIX "[SPX]"
+#define EXCHANGE_PATH "/tmp/spx_exchange_%d"
+#define TRADER_PATH "/tmp/spx_trader_%d"
 
 enum type {
   BUY=0,
