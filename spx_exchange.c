@@ -148,7 +148,6 @@ int write_pipe(int fd, char* message, pid_t pid) {
 int initialise_trader(char* path, int* pid_array, int index) {
 	pid_array[index] = fork();
 	if (pid_array[index] == -1) {
-		pid_array[index] = -1;
 		return -1;
 	}
 	if (pid_array[index] == 0) {
@@ -171,7 +170,6 @@ int create_fifo(int* fds, char* path, int index) {
 	unlink(path);//+++
 
 	if (mkfifo(path, 0777) == -1) {//+++ check perms
-		fds[index] = -1;
 		printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
 		return -1;
 	}
@@ -202,6 +200,7 @@ int main(int argc, char **argv) {
 		for (int trader = 2; trader < argc; trader++) {
 			char path[PATH_LENGTH];
 			snprintf(path, PATH_LENGTH, "/tmp/spx_trader_%d", trader-2);
+			printf("%s", path);
 			if (create_fifo(fds, path, trader-1) == -1) {
 				printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
 				return -1;
