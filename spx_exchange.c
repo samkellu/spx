@@ -172,7 +172,7 @@ int* initialise_traders(int argc, char** argv) {
 
 int* create_fifos(int argc, char** argv) {
 	int* fds = malloc(sizeof(int) * (argc-1));
-	fds[argc] = -1;
+	fds[argc - 2] = -1;
 	// +++ CHECK if there can be multiple exchanges???
 	char path[PATH_LENGTH];
 	snprintf(path, PATH_LENGTH, "/tmp/spx_exchange_%d", 0);
