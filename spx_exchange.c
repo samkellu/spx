@@ -206,13 +206,13 @@ int main(int argc, char **argv) {
 			if (create_fifo(fds, path, fd_cursor++) == -1) {
 				return -1;
 			}
-			// +++ check connectivity if required
-			printf("%s Connected to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");
-			printf("%s Connected to %s\n", LOG_PREFIX, path);
 			// Starts trader processes specified by command line arguments
 			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
 				return -1;
 			}
+			// +++ check connectivity if required
+			printf("%s Connected to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");
+			printf("%s Connected to %s\n", LOG_PREFIX, path);
 		}
 
 		int index = 1;
