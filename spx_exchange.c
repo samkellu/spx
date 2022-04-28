@@ -148,6 +148,7 @@ int write_pipe(int fd, char* message, pid_t pid) {
 int initialise_trader(char* path, int* pid_array, int index) {
 	pid_array[index] = fork();
 	if (pid_array[index] == -1) {
+		printf("%s Fork failed\n", LOG_PREFIX);
 		return -1;
 	}
 	if (pid_array[index] == 0) {
@@ -193,21 +194,18 @@ int main(int argc, char **argv) {
 
 		signal(SIGUSR2, handle_invalid_bin);
 
-		if (create_fifo(fds, "tmp/spx_exchange_0", 0) == -1) {
+		if (create_fifo(fds, "/tmp/spx_exchange_0", 0) == -1) {
 			return -1;
 		}
 
 		for (int trader = 2; trader < argc; trader++) {
 			char path[PATH_LENGTH];
 			snprintf(path, PATH_LENGTH, "/tmp/spx_trader_%d", trader-2);
-			printf("%s", path);
 			if (create_fifo(fds, path, trader-1) == -1) {
-				printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
 				return -1;
 			}
 			// Starts trader processes specified by command line arguments
 			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
-				printf("%s Fork failed\n", LOG_PREFIX);
 				return -1;
 			}
 		}
