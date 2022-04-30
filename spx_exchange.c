@@ -27,6 +27,7 @@ struct order** delete_order(struct order** orders, int index) {
 		cursor++;
 	}
 	orders = realloc(orders, sizeof(struct order) * cursor);
+	return orders;
 }
 
 
