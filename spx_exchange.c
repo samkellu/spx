@@ -217,8 +217,8 @@ struct level* orderbook_helper(struct order* current_order, int* num_levels, int
 	}
 
 	if (valid) {
-		*num_levels++;
-		*num_type++;
+		num_levels++;
+		num_type++;
 		levels = realloc(levels, sizeof(struct level) * *num_levels);
 		struct level new_level = {current_order->price, 1, current_order->qty, current_order->type};
 		levels[*num_levels - 1] = new_level;
