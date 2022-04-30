@@ -20,6 +20,15 @@ void read_sig(int errno) {
 		read_flag = 1;
 }
 
+struct order** delete_order(struct order** orders, int index) {
+	int cursor = index;
+	while (orders[cursor + 1] != NULL) {
+		orders[cursor] = orders[cursor + 1];
+		cursor++;
+	}
+	orders = realloc(orders, sizeof(struct order) * cursor);
+}
+
 
 struct order* create_order(int type, int trader_id, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order* (*operation)(struct order*, struct order**), struct order** orders) {
  // Adding order to the exchange's array of orders/ memory management stuff
@@ -48,9 +57,16 @@ struct order* sell_order(struct order* new_order, struct order** orders) {
 		// Booleans to check if the current order is compatible with the new order
 		int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
 		int price_valid = (orders[current_order]->price >= new_order->price);
-		if (product_valid && price_valid) {
+		if (product_valid && price_valid && orders[current_order]->type == BUY) {
 			if (orders[current_order]->qty <= new_order->qty) {
+				int cost = orders[current_order]->qty * new_order->price;
+				printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.", LOG_PREFIX, orders[current_order]->order_id,\
+								orders[current_order]->trader_id, new_order->order_id, new_order->trader_id, cost,\
+								(int)round(0.01 * cost));
+				orders = delete_order(orders, current_order);
 				// send signal to fill order to current_order.trader
+			} else {
+				new_order->qty -= orders[current_order]->qty;
 			}
 		}
 		current_order++;

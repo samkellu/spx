@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <math.h>
 
 #define FIFO_EXCHANGE "/tmp/spx_exchange_%d"
 #define FIFO_TRADER "/tmp/spx_trader_%d"
