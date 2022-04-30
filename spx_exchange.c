@@ -160,7 +160,7 @@ int write_pipe(int fd, char* message) {
 		if (fd == -1) {
 			return -1;
 		}
-		write(fd, message, MAX_INPUT);
+		write(fd, message, strlen(message) + 1);
 		return 1;
 	}
 	return -1;
