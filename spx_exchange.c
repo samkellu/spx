@@ -8,6 +8,7 @@
 
 
 int read_flag = 0;
+int init_flag = 0;
 
 void handle_invalid_bin(int errno) {
 		printf("%s Error: Given trader binary doesn't exist\n", LOG_PREFIX);
@@ -137,13 +138,12 @@ char** take_input(int fd) {
 	return arg_array;
 }
 
-int write_pipe(int fd, char* message, pid_t pid) {
+int write_pipe(int fd, char* message) {
 	if (strlen(message) + 1 < MAX_INPUT) {
 		if (fd == -1) {
 			return -1;
 		}
 		write(fd, message, MAX_INPUT);
-		kill(pid, SIGUSR1);
 		return 1;
 	}
 	return -1;
@@ -223,10 +223,16 @@ int main(int argc, char **argv) {
 			printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
 			printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
 		}
-
 		// Sending MARKET OPEN message to all exchange pipes
 		for (int index = 0; index < argc - 2; index++) {
-			write_pipe(exchange_fds[index], "MARKET OPEN;", pid_array[index]);
+			write_pipe(exchange_fds[index], "MARKET OPEN;");
+		}
+		sleep(1);
+		
+		for (int index = 0; index < argc - 2; index++) {
+			printf("%d ", pid_array[index]);
+			fflush(stdout);
+			kill(pid_array[index], SIGUSR1);
 		}
 
 		signal(SIGUSR1, read_sig);
