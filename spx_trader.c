@@ -17,6 +17,7 @@ int main(int argc, char ** argv) {
         printf("Not enough arguments\n");
         return 1;
     }
+    printf("gat");
 
     int id = strtol(argv[0], NULL, 10);
     char path[PATH_LENGTH];

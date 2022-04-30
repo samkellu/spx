@@ -6,6 +6,7 @@
 
 #include "spx_exchange.h"
 
+
 int read_flag = 0;
 
 void handle_invalid_bin(int errno) {
@@ -157,7 +158,6 @@ int initialise_trader(char* path, int* pid_array, int index) {
 
 	if (pid_array[index] > 0) {
 		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
-		sleep(0.2);
 		return 1;
 	}
 
@@ -238,15 +238,19 @@ int main(int argc, char **argv) {
 		int running = 1;
 		while (running) {
 			char** arg_array;
+			int trader_number;
 			// use select here to monitor pipe +++
 			if (read_flag) {
 				printf("%s ", LOG_PREFIX);
 				for (int pipe = 0; pipe < argc - 2; pipe++) {
 						arg_array = take_input(trader_fds[pipe]);
 						if (arg_array != NULL) {
+							trader_number = pipe;
 							break;
 						}
 					}
+
+				printf("trader no: %d\n", trader_number);
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
 					printf("buy");
