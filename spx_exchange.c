@@ -103,9 +103,12 @@ char** read_products_file(char* fp) {
 	return products;
 }
 
-char** take_input() {
+char** take_input(int fd) {
 	char input[MAX_INPUT], *token;
-	read(3, input, MAX_INPUT); // will be a pipe +++
+	int result = read(fd, input, MAX_INPUT); // will be a pipe +++
+	if (result == -1) {
+		return (char**)NULL;
+	}
 	char** arg_array = (char**) malloc(0);
 	int args_length = 0;
 
@@ -193,7 +196,8 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 
-		int* fds = malloc(sizeof(int) * 2 * (argc - 2));
+		int* trader_fds = malloc(sizeof(int) * (argc - 2));
+		int* exchange_fds = malloc(sizeof(int) * (argc - 2));
 		int fd_cursor = 0;
 		int* pid_array = malloc((argc - 1) * sizeof(int));
 
@@ -203,12 +207,12 @@ int main(int argc, char **argv) {
 			char exchange_path[PATH_LENGTH];
 			char trader_path[PATH_LENGTH];
 			snprintf(exchange_path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
-			if (create_fifo(fds, exchange_path, fd_cursor++) == -1) {
+			if (create_fifo(exchange_fds, exchange_path, fd_cursor) == -1) {
 				return -1;
 			}
 
 			snprintf(trader_path, PATH_LENGTH, TRADER_PATH, trader-2);
-			if (create_fifo(fds, trader_path, fd_cursor++) == -1) {
+			if (create_fifo(trader_fds, trader_path, fd_cursor++) == -1) {
 				return -1;
 			}
 			// Starts trader processes specified by command line arguments
@@ -220,10 +224,9 @@ int main(int argc, char **argv) {
 			printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
 		}
 
-		int index = 1;
-		while (fds[index] >= 0) {
-			write_pipe(fds[index], "MARKET OPEN;", pid_array[index-1]);
-			index++;
+		// Sending MARKET OPEN message to all exchange pipes
+		for (int index = 0; index < argc - 2; index++) {
+			write_pipe(exchange_fds[index], "MARKET OPEN;", pid_array[index]);
 		}
 
 		signal(SIGUSR1, read_sig);
@@ -234,10 +237,16 @@ int main(int argc, char **argv) {
 
 		int running = 1;
 		while (running) {
+			char** arg_array;
 			// use select here to monitor pipe +++
 			if (read_flag) {
 				printf("%s ", LOG_PREFIX);
-				char** arg_array = take_input();
+				for (int pipe = 0; pipe < argc - 2; pipe++) {
+						arg_array = take_input(trader_fds[pipe]);
+						if (arg_array != NULL) {
+							break;
+						}
+					}
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
 					printf("buy");
@@ -245,7 +254,7 @@ int main(int argc, char **argv) {
 
 				} else if (strcmp(arg_array[0], "SELL") == 0) {
 					printf("%s", arg_array[0]);
-					//Arg 2, consider how to get the trader id????? +++
+
 					struct order* new_order = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
 					printf("%s", new_order->product);
 					fflush(stdout);
