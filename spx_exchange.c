@@ -327,7 +327,7 @@ int main(int argc, char **argv) {
 			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
 				return -1;
 			}
-			sleep(2);
+			// sleep(1);
 			// +++ check connectivity if required
 			printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
 			printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
