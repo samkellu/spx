@@ -6,10 +6,18 @@
 
 #include "spx_exchange.h"
 
+int read_flag = 0;
+
 void handle_invalid_bin(int errno) {
 		printf("%s Error: Given trader binary doesn't exist\n", LOG_PREFIX);
 		exit(0); // +++ replace with a graceful exit function
 }
+
+void read_sig(int errno) {
+		printf("%s Reading in exchange\n", LOG_PREFIX);
+		read_flag = 1;
+}
+
 
 struct order* create_order(int type, int trader_id, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order* (*operation)(struct order*, struct order**), struct order** orders) {
  // Adding order to the exchange's array of orders/ memory management stuff
@@ -97,7 +105,7 @@ char** read_products_file(char* fp) {
 
 char** take_input() {
 	char input[MAX_INPUT], *token;
-	fgets(input, MAX_INPUT, stdin); // will be a pipe +++
+	read(3, input, MAX_INPUT); // will be a pipe +++
 	char** arg_array = (char**) malloc(0);
 	int args_length = 0;
 
@@ -125,55 +133,54 @@ char** take_input() {
 	return arg_array;
 }
 
-int* initialise_traders(int argc, char** argv) {
-	int* pid_array = malloc((argc - 2) * sizeof(int));
-	for (int i = 2; i < argc; i++) {
-		pid_array[i-2] = fork();
-		if (pid_array[i-2] == -1) {
-			pid_array[0] = -1;
-			return pid_array;
+int write_pipe(int fd, char* message, pid_t pid) {
+	if (strlen(message) + 1 < MAX_INPUT) {
+		if (fd == -1) {
+			return -1;
 		}
-		if (pid_array[i-2] == 0) {
-			char trader_id[MAX_TRADERS_BYTES];
-			sprintf(trader_id, "%d", i-2);
-			printf("%s Starting trader %s (%s)\n", LOG_PREFIX, trader_id, argv[i]);
-			if (execl(argv[i], trader_id, (char*)NULL) == -1) {
-				kill(getppid(), SIGUSR2);
-				kill(getpid(), 9);
-			}
-		}
-		sleep(1);
+		write(fd, message, MAX_INPUT);
+		kill(pid, SIGUSR1);
+		return 1;
 	}
-	return pid_array;
+	return -1;
 }
 
-int* create_fifos(int argc, char** argv) {
-	int* fds = malloc(sizeof(int) * (argc-1));
+int initialise_trader(char* path, int* pid_array, int index) {
+	pid_array[index] = fork();
+	if (pid_array[index] == -1) {
+		printf("%s Fork failed\n", LOG_PREFIX);
+		return -1;
+	}
+
+	if (pid_array[index] > 0) {
+		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
+		sleep(0.2);
+		return 1;
+	}
+
+	char ppid[MAX_PID];
+	char trader_id[MAX_TRADERS_BYTES];
+	sprintf(trader_id, "%d", index);
+	sprintf(ppid, "%d", getppid());
+	if (execl(path, trader_id, ppid, (char*)NULL) == -1) {
+		kill(getppid(), SIGUSR2);
+		kill(getpid(), 9);
+		return -1;
+	}
+	return 1;
+}
+
+int create_fifo(int* fds, char* path, int index) {
 	// +++ CHECK if there can be multiple exchanges???
-	char path[PATH_LENGTH];
-	snprintf(path, PATH_LENGTH, "/tmp/spx_exchange_%d", 0);
 	unlink(path);//+++
 
 	if (mkfifo(path, 0777) == -1) {//+++ check perms
-		free(fds);
-		return (int*)NULL;
+		printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
+		return -1;
 	}
+	fds[index] = open(path, O_RDWR | O_NONBLOCK);
 	printf("%s Created FIFO %s\n", LOG_PREFIX, path);
-	fds[0] = open(path, O_NONBLOCK);
-
-	for (int i = 2; i < argc; i++) {
-		char path[PATH_LENGTH];
-		snprintf(path, PATH_LENGTH, "/tmp/spx_trader_%d", i-2);
-		unlink(path);//+++
-
-		if (mkfifo(path, 0777) == -1) {//+++ check perms
-			free(fds);
-			return (int*)NULL;
-		}
-		printf("%s Created FIFO %s\n", LOG_PREFIX, path);
-		fds[i-1] = open(path, O_NONBLOCK);
-	}
-	return fds;
+	return 1;
 }
 
 int main(int argc, char **argv) {
@@ -186,35 +193,39 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 
-		int* fds = create_fifos(argc, argv);
-		if (fds == (int*)NULL) {
-			printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
-			return -1;
-		}
+		int* fds = malloc(sizeof(int) * 2 * (argc - 2));
+		int fd_cursor = 0;
+		int* pid_array = malloc((argc - 1) * sizeof(int));
 
-		if (fds[0] == -1) {
-			printf("%s Error: Could not connect to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");//+++ willl have to change if we need multiple exchanges
-			return -1;
-		}
-		printf("%s Connected to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");
+		signal(SIGUSR2, handle_invalid_bin);
 
-		for (int i = 1; i < argc - 1; i++) {
-			if (fds[i] == -1) {
-				printf("%s Error: Could not connect to FIFO\n", LOG_PREFIX);
+		for (int trader = 2; trader < argc; trader++) {
+			char path[PATH_LENGTH];
+			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
+			if (create_fifo(fds, path, fd_cursor++) == -1) {
 				return -1;
 			}
-			char path[PATH_LENGTH];
-			snprintf(path, PATH_LENGTH, "/tmp/spx_trader_%d", i-1);
+			printf("%s Connected to %s\n", LOG_PREFIX, path);
+
+			snprintf(path, PATH_LENGTH, TRADER_PATH, trader-2);
+			if (create_fifo(fds, path, fd_cursor++) == -1) {
+				return -1;
+			}
+			// Starts trader processes specified by command line arguments
+			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
+				return -1;
+			}
+			// +++ check connectivity if required
 			printf("%s Connected to %s\n", LOG_PREFIX, path);
 		}
 
-		// Starts all trader processes specified by command line arguments
-		signal(SIGUSR2, handle_invalid_bin);
-		int* pid_array = initialise_traders(argc, argv);
-		if (*pid_array == -1) {
-			printf("%s Fork failed\n", LOG_PREFIX);
-			return -1;
+		int index = 1;
+		while (fds[index] >= 0) {
+			write_pipe(fds[index], "MARKET OPEN;", pid_array[index-1]);
+			index++;
 		}
+
+		signal(SIGUSR1, read_sig);
 
 		// Creates a null terminated array of orders
 		struct order** orders = malloc(sizeof(struct order));
@@ -222,24 +233,32 @@ int main(int argc, char **argv) {
 
 		int running = 1;
 		while (running) {
-			printf("%s ", LOG_PREFIX);
+			// use select here to monitor pipe +++
+			if (read_flag) {
+				printf("%s ", LOG_PREFIX);
+				char** arg_array = take_input();
 
-			char** arg_array = take_input();
-			if (strcmp(arg_array[0], "BUY") == 0) {
-				printf("buy");
-				// create_order(BUY, int order_id, char product[PRODUCT_LENGTH], int qty, int price, &buy_order)
+				if (strcmp(arg_array[0], "BUY") == 0) {
+					printf("buy");
+					// create_order(BUY, int order_id, char product[PRODUCT_LENGTH], int qty, int price, &buy_order)
 
-			} else if (strcmp(arg_array[0], "SELL") == 0) {
-				//Arg 2, consider how to get the trader id????? +++
-				struct order* new_order = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
-				printf("%s", new_order->product);
+				} else if (strcmp(arg_array[0], "SELL") == 0) {
+					printf("%s", arg_array[0]);
+					//Arg 2, consider how to get the trader id????? +++
+					struct order* new_order = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
+					printf("%s", new_order->product);
+					fflush(stdout);
 
-			} else if (strcmp(arg_array[0], "AMEND") == 0) {
-				printf("amend");
+				} else if (strcmp(arg_array[0], "AMEND") == 0) {
+					printf("amend");
 
-			} else if (strcmp(arg_array[0], "DEL") == 0) {
-				printf("del");
+				} else if (strcmp(arg_array[0], "DEL") == 0) {
+					printf("del");
+				}
+				read_flag = 0;
 			}
+
+			sleep(1); // Check for responsiveness, or add blocking io if necessary +++
 		}
 		// Free all mem
 	} else {
