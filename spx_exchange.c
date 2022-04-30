@@ -156,7 +156,7 @@ char** take_input(int fd) {
 }
 
 int write_pipe(int fd, char* message) {
-	if (strlen(message) + 1 < MAX_INPUT) {
+	if (strlen(message) < MAX_INPUT) {
 		if (fd == -1) {
 			return -1;
 		}
