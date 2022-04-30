@@ -327,15 +327,13 @@ int main(int argc, char **argv) {
 			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
 				return -1;
 			}
-			// sleep(1);
+			sleep(1);
 			// +++ check connectivity if required
 			printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
 			printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
 		}
 		// Sending MARKET OPEN message to all exchange pipes
 		for (int index = 0; index < argc - 2; index++) {
-			printf("%d:%d\n", index, exchange_fds[index]);
-			fflush(stdout);
 			write_pipe(exchange_fds[index], "MARKET OPEN;");
 		}
 
