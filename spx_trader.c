@@ -7,8 +7,6 @@ int market_open = 0;
 
 void sig_read(int errno) {
   read_flag = 1;
-  printf("reading");
-  fflush(stdout);
   return;
 }
 
@@ -17,16 +15,18 @@ int main(int argc, char ** argv) {
         printf("Not enough arguments\n");
         return 1;
     }
-    printf("gat");
+    signal(SIGUSR1, sig_read);
 
+    pid_t ppid = strtol(argv[1], NULL, 10);
     int id = strtol(argv[0], NULL, 10);
     char path[PATH_LENGTH];
-    sprintf(path, "/tmp/spx_trader_%d", id);
-    pid_t ppid = strtol(argv[1], NULL, 10);
-    int trader_fd = open(path, O_RDWR | O_NONBLOCK);
-    signal(SIGUSR1, sig_read);
+
     sprintf(path, "/tmp/spx_exchange_%d", id);
-    int exchange_fd = open(path, O_RDWR | O_NONBLOCK);
+    int exchange_fd = open(path, O_RDWR);
+    sprintf(path, "/tmp/spx_trader_%d", id);
+    int trader_fd = open(path, O_RDWR);
+    printf("why");
+    fflush(stdout);
 
     int debug_count = 0;
 
@@ -50,6 +50,8 @@ int main(int argc, char ** argv) {
         if (!market_open) {
           if (strcmp(buf, "MARKET OPEN;") == 0) {
             market_open = 1;
+            sleep(1);
+
           }
         } else {
 

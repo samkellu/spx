@@ -190,7 +190,7 @@ int initialise_trader(char* path, int* pid_array, int index) {
 	return 1;
 }
 
-int create_fifo(int* fds, char* path, int index) {
+int create_fifo(char* path) {
 	// +++ CHECK if there can be multiple exchanges???
 	unlink(path);//+++
 
@@ -198,7 +198,6 @@ int create_fifo(int* fds, char* path, int index) {
 		printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
 		return -1;
 	}
-	fds[index] = open(path, O_RDWR | O_NONBLOCK);
 	printf("%s Created FIFO %s\n", LOG_PREFIX, path);
 	return 1;
 }
@@ -312,36 +311,46 @@ int main(int argc, char **argv) {
 		signal(SIGUSR2, handle_invalid_bin);
 
 		for (int trader = 2; trader < argc; trader++) {
+			// Creates named pipes for the exchange and traders
 			char exchange_path[PATH_LENGTH];
 			char trader_path[PATH_LENGTH];
 			snprintf(exchange_path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
-			if (create_fifo(exchange_fds, exchange_path, fd_cursor) == -1) {
+			if (create_fifo(exchange_path) == -1) {
 				return -1;
 			}
 
 			snprintf(trader_path, PATH_LENGTH, TRADER_PATH, trader-2);
-			if (create_fifo(trader_fds, trader_path, fd_cursor++) == -1) {
+			if (create_fifo(trader_path) == -1) {
 				return -1;
 			}
+
 			// Starts trader processes specified by command line arguments
 			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
 				return -1;
 			}
-			sleep(1);
-			// +++ check connectivity if required
+			// Connects to each named pipe
+
+			exchange_fds[trader - 2] = open(exchange_path, O_RDWR);
 			printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
+
+			trader_fds[trader - 2] = open(trader_path, O_RDWR);
 			printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
 		}
 		// Sending MARKET OPEN message to all exchange pipes
 		for (int index = 0; index < argc - 2; index++) {
 			write_pipe(exchange_fds[index], "MARKET OPEN;");
-		}
-
-		for (int index = 0; index < argc - 2; index++) {
-			kill(pid_array[index], SIGUSR1);
+			printf("cok");
+			fflush(stdout);
 		}
 
 		signal(SIGUSR1, read_sig);
+		// sleep(1);
+		for (int index = 0; index < argc - 2; index++) {
+			printf("%d", pid_array[index]);
+			fflush(stdout);
+			kill(pid_array[index], SIGUSR1);
+		}
+
 
 		// Creates a null terminated array of orders
 		struct order** orders = malloc(sizeof(struct order));
