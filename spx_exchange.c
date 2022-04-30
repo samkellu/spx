@@ -338,15 +338,11 @@ int main(int argc, char **argv) {
 		// Sending MARKET OPEN message to all exchange pipes
 		for (int index = 0; index < argc - 2; index++) {
 			write_pipe(exchange_fds[index], "MARKET OPEN;");
-			printf("cok");
-			fflush(stdout);
 		}
 
 		signal(SIGUSR1, read_sig);
-		// sleep(1);
+		sleep(1);
 		for (int index = 0; index < argc - 2; index++) {
-			printf("%d", pid_array[index]);
-			fflush(stdout);
 			kill(pid_array[index], SIGUSR1);
 		}
 
