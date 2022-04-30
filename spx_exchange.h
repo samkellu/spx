@@ -23,4 +23,11 @@ struct order {
   int trader_id;
 };
 
+struct level {
+  int price;
+  int num;
+  int qty;
+  int type;
+};
+
 #endif

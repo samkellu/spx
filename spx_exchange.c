@@ -203,6 +203,97 @@ int create_fifo(int* fds, char* path, int index) {
 	return 1;
 }
 
+struct level* orderbook_helper(struct order* current_order, int* num_levels, int* num_type, struct level* levels) {
+
+	int valid = 1;
+
+	for (int level_cursor = 0; level_cursor < *num_levels; level_cursor++) {
+		if (current_order->price == levels[level_cursor].price && current_order->type == levels[level_cursor].type) {
+			valid = 0;
+			levels[level_cursor].num++;
+			levels[level_cursor].qty += current_order->qty;
+			break;
+		}
+	}
+
+	if (valid) {
+		*num_levels++;
+		*num_type++;
+		levels = realloc(levels, sizeof(struct level) * *num_levels);
+		struct level new_level = {current_order->price, 1, current_order->qty, current_order->type};
+		levels[*num_levels - 1] = new_level;
+	}
+	return levels;
+}
+
+void generate_orderbook(int num_products, char** products, struct order** orders) {
+
+	printf("%s	--ORDERBOOK--\n", LOG_PREFIX);
+
+	for (int product = 1; product <= num_products; product++) {
+
+		struct order** current_orders = malloc(0);
+		int num_levels = 0;
+		int num_sell_levels = 0;
+		int num_buy_levels = 0;
+		struct level* levels = malloc(0);
+		int num_orders = 0;
+		int cursor = 0;
+
+		while (orders[cursor] != NULL) {
+			if (strcmp(orders[cursor]->product, products[product]) == 0) {
+				if (orders[cursor]->type == SELL) {
+					levels = orderbook_helper(orders[cursor], &num_levels, &num_sell_levels, levels);	// +++ Check that these pointers are actually updated lol
+				}
+				if (orders[cursor]->type == BUY) {
+					levels = orderbook_helper(orders[cursor], &num_levels, &num_buy_levels, levels);
+				}
+				current_orders = realloc(current_orders, sizeof(struct order) * ++num_orders);
+				current_orders[num_orders-1] = orders[cursor];
+			}
+		}
+		printf("%s	Product: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
+
+		int sort_cursor = 0;
+		while (sort_cursor < num_levels) {
+
+			int max = 0;
+			int max_index;
+			for (int level = 0; level < num_levels; level++) {
+				if (levels[level].price > max) {
+					max_index = level;
+					max = levels[level].price;
+				}
+			}
+
+			char* type_str;
+			if (levels[max_index].type) {
+				type_str = "SELL";
+			} else {
+				type_str = "BUY";
+			}
+
+			char* order_str;
+			if (levels[max_index].num > 1) {
+				order_str = "orders";
+			} else {
+				order_str = "order";
+			}
+
+			printf("%s			%s %d @ $%d (%d %s)\n", LOG_PREFIX, type_str, levels[max_index].qty, levels[max_index].price, \
+						levels[max_index].num, order_str);
+
+
+			levels[sort_cursor] = levels[max_index];
+			for (int level = max_index; level > sort_cursor + 1; level--) {
+				levels[level] = levels[level - 1];
+			}
+			sort_cursor++;
+		}
+		free(levels);
+	}
+}
+
 int main(int argc, char **argv) {
 	if (argc > 1) {
 		printf("%s Starting\n", LOG_PREFIX);
@@ -274,6 +365,10 @@ int main(int argc, char **argv) {
 					}
 
 				printf("trader no: %d\n", trader_number);
+				printf("%s [T%d] Parsing command: <%s>\n", LOG_PREFIX, trader_number, arg_array[0]);
+				generate_orderbook(strtol(products[0], NULL, 10), products, orders);
+
+
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
 					printf("buy");
