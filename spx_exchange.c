@@ -200,15 +200,15 @@ int main(int argc, char **argv) {
 		signal(SIGUSR2, handle_invalid_bin);
 
 		for (int trader = 2; trader < argc; trader++) {
-			char path[PATH_LENGTH];
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
-			if (create_fifo(fds, path, fd_cursor++) == -1) {
+			char exchange_path[PATH_LENGTH];
+			char trader_path[PATH_LENGTH];
+			snprintf(exchange_path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
+			if (create_fifo(fds, exchange_path, fd_cursor++) == -1) {
 				return -1;
 			}
-			printf("%s Connected to %s\n", LOG_PREFIX, path);
 
-			snprintf(path, PATH_LENGTH, TRADER_PATH, trader-2);
-			if (create_fifo(fds, path, fd_cursor++) == -1) {
+			snprintf(trader_path, PATH_LENGTH, TRADER_PATH, trader-2);
+			if (create_fifo(fds, trader_path, fd_cursor++) == -1) {
 				return -1;
 			}
 			// Starts trader processes specified by command line arguments
@@ -216,7 +216,8 @@ int main(int argc, char **argv) {
 				return -1;
 			}
 			// +++ check connectivity if required
-			printf("%s Connected to %s\n", LOG_PREFIX, path);
+			printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
+			printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
 		}
 
 		int index = 1;
