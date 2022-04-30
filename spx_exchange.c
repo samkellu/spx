@@ -335,8 +335,8 @@ int main(int argc, char **argv) {
 		// Sending MARKET OPEN message to all exchange pipes
 		for (int index = 0; index < argc - 2; index++) {
 			printf("%d:%d\n", index, exchange_fds[index]);
-			write_pipe(exchange_fds[index], "MARKET OPEN;");
 			fflush(stdout);
+			write_pipe(exchange_fds[index], "MARKET OPEN;");
 		}
 
 		for (int index = 0; index < argc - 2; index++) {
