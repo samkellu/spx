@@ -305,7 +305,6 @@ int main(int argc, char **argv) {
 
 		int* trader_fds = malloc(sizeof(int) * (argc - 2));
 		int* exchange_fds = malloc(sizeof(int) * (argc - 2));
-		int fd_cursor = 0;
 		int* pid_array = malloc((argc - 1) * sizeof(int));
 
 		signal(SIGUSR2, handle_invalid_bin);
