@@ -178,11 +178,9 @@ int initialise_trader(char* path, int* pid_array, int index) {
 		return 1;
 	}
 
-	char ppid[MAX_PID];
 	char trader_id[MAX_TRADERS_BYTES];
 	sprintf(trader_id, "%d", index);
-	sprintf(ppid, "%d", getppid());
-	if (execl(path, trader_id, (char*)NULL) == -1) {
+	if (execl(path, index, (char*)NULL) == -1) {
 		kill(getppid(), SIGUSR2);
 		kill(getpid(), 9);
 		return -1;
