@@ -182,7 +182,7 @@ int initialise_trader(char* path, int* pid_array, int index) {
 	sprintf(trader_id, "%d", index);
 	printf("%s", trader_id);
 	fflush(stdout);
-	if (execl(path, trader_id, " ", '\0') == -1) {
+	if (execl(path, path, trader_id, '\0') == -1) {
 		kill(getppid(), SIGUSR2);
 		kill(getpid(), 9);
 		return -1;
