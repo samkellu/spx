@@ -333,9 +333,9 @@ int main(int argc, char **argv) {
 			printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
 		}
 		// Sending MARKET OPEN message to all exchange pipes
-		for (int index = 0; index < argc - 3; index++) {
+		for (int index = 0; index < argc - 2; index++) {
+			printf("%d:%d\n", index, exchange_fds[index]);
 			write_pipe(exchange_fds[index], "MARKET OPEN;");
-			printf("print");
 			fflush(stdout);
 		}
 
