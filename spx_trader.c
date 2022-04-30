@@ -17,7 +17,7 @@ int main(int argc, char ** argv) {
     }
     signal(SIGUSR1, sig_read);
 
-    pid_t ppid = strtol(getppid(), NULL, 10);
+    pid_t ppid = getppid();
     int id = strtol(argv[0], NULL, 10);
     char path[PATH_LENGTH];
 
