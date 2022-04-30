@@ -227,8 +227,8 @@ int main(int argc, char **argv) {
 		for (int index = 0; index < argc - 2; index++) {
 			write_pipe(exchange_fds[index], "MARKET OPEN;");
 		}
-		sleep(1);
-		
+		sleep(5);
+
 		for (int index = 0; index < argc - 2; index++) {
 			printf("%d ", pid_array[index]);
 			fflush(stdout);
