@@ -329,10 +329,10 @@ int main(int argc, char **argv) {
 			}
 			// Connects to each named pipe
 
-			exchange_fds[trader - 2] = open(exchange_path, O_RDWR);
+			exchange_fds[trader - 2] = open(exchange_path, O_WRONLY);
 			printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
 
-			trader_fds[trader - 2] = open(trader_path, O_RDWR);
+			trader_fds[trader - 2] = open(trader_path, O_RDONLY);
 			printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
 		}
 		// Sending MARKET OPEN message to all exchange pipes
