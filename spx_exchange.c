@@ -370,7 +370,7 @@ int main(int argc, char **argv) {
 				free(arg_array[4]);
 				arg_array[4] = last_arg;
 
-				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", LOG_PREFIX, trader_number, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
+				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", trader_number, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 				generate_orderbook(strtol(products[0], NULL, 10), products, orders);
 
 
