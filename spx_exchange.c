@@ -364,7 +364,7 @@ int main(int argc, char **argv) {
 							break;
 						}
 					}
-				char* last_arg[strlen(arg_array[4])]
+				char* last_arg[strlen(arg_array[4])];
 				memcpy(last_arg, arg_array[4], strlen(arg_array[4]) - 1);
 				last_arg[strlen(arg_array[4]) - 1] = '\0';
 
