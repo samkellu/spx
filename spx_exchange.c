@@ -1,3 +1,4 @@
+
 /**
  * comp2017 - assignment 3
  * Sam Kelly
@@ -16,7 +17,6 @@ void handle_invalid_bin(int errno) {
 }
 
 void read_sig(int errno) {
-		printf("%s Reading in exchange\n", LOG_PREFIX);
 		read_flag = 1;
 }
 
@@ -180,8 +180,6 @@ int initialise_trader(char* path, int* pid_array, int index) {
 
 	char trader_id[MAX_TRADERS_BYTES];
 	sprintf(trader_id, "%d", index);
-	printf("%s", trader_id);
-	fflush(stdout);
 	if (execl(path, path, trader_id, '\0') == -1) {
 		kill(getppid(), SIGUSR2);
 		kill(getpid(), 9);
@@ -366,8 +364,7 @@ int main(int argc, char **argv) {
 						}
 					}
 
-				printf("trader no: %d\n", trader_number);
-				printf("%s [T%d] Parsing command: <%s>\n", LOG_PREFIX, trader_number, arg_array[0]);
+				printf("%s [T%d] Parsing command: <%s %s %s %s %s>\n", LOG_PREFIX, trader_number, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 				generate_orderbook(strtol(products[0], NULL, 10), products, orders);
 
 
