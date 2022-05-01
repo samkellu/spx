@@ -364,11 +364,7 @@ int main(int argc, char **argv) {
 							break;
 						}
 					}
-				char* last_arg = malloc(sizeof(char) *strlen(arg_array[4]));
-				memcpy(last_arg, arg_array[4], strlen(arg_array[4]) - 1);
-				last_arg[strlen(arg_array[4]) - 1] = '\0';
-				free(arg_array[4]);
-				arg_array[4] = last_arg;
+				arg_array[4][strlen(arg_array[4])-1] = '\0';
 
 				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", trader_number, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 				generate_orderbook(strtol(products[0], NULL, 10), products, orders);
