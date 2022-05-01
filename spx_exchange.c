@@ -350,6 +350,7 @@ int main(int argc, char **argv) {
 		orders[0] = (struct order*) NULL;
 
 		int running = 1;
+		int counter = 0;
 		while (running) {
 			char** arg_array;
 			int trader_number;
@@ -388,7 +389,9 @@ int main(int argc, char **argv) {
 				}
 				read_flag = 0;
 			}
-
+			if (counter++ == 100) {
+				running = 0;
+			}
 			sleep(1); // Check for responsiveness, or add blocking io if necessary +++
 		}
 		// Free all mem
