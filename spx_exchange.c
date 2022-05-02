@@ -174,7 +174,7 @@ int create_fifo(int* fds, char* path, int index) {
 	// +++ CHECK if there can be multiple exchanges???
 	unlink(path);//+++
 
-	if (mkfifo(path, 0777) == -1) {//+++ check perms
+	if (mkfifo(path, 0666) == -1) {//+++ check perms
 		printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
 		return -1;
 	}
