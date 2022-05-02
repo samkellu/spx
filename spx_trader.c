@@ -7,8 +7,6 @@ int market_open = 0;
 
 void sig_read(int errno) {
   read_flag = 1;
-  printf("reading");
-  fflush(stdout);
   return;
 }
 
@@ -17,15 +15,18 @@ int main(int argc, char ** argv) {
         printf("Not enough arguments\n");
         return 1;
     }
+    signal(SIGUSR1, sig_read);
 
+    pid_t ppid = getppid();
     int id = strtol(argv[0], NULL, 10);
     char path[PATH_LENGTH];
-    sprintf(path, "/tmp/spx_trader_%d", id);
-    pid_t ppid = strtol(argv[1], NULL, 10);
-    int this_fd = open(path, O_RDWR | O_NONBLOCK);
-    signal(SIGUSR1, sig_read);
+
     sprintf(path, "/tmp/spx_exchange_%d", id);
-    int fd = open(path, O_RDWR | O_NONBLOCK);
+    int exchange_fd = open(path, O_RDWR);
+    sprintf(path, "/tmp/spx_trader_%d", id);
+    int trader_fd = open(path, O_RDWR);
+    printf("why");
+    fflush(stdout);
 
     int debug_count = 0;
 
@@ -37,18 +38,20 @@ int main(int argc, char ** argv) {
       }
 
       if (market_open) {
-        write(fd, "SELL what the fuck", strlen("SELL what the fuck") + 1);
+        write(trader_fd, "SELL what the fuck", strlen("SELL what the fuck") + 1);
         kill(ppid, SIGUSR1);
       }
 
       if (read_flag) {
         char buf[MAX_INPUT] = "";
-        read(this_fd, buf, MAX_INPUT);
+        read(exchange_fd, buf, MAX_INPUT);
         printf("[Trader %d] [t=%d] Received from SPX: %s\n", id, 0, buf);
 
         if (!market_open) {
           if (strcmp(buf, "MARKET OPEN;") == 0) {
             market_open = 1;
+            sleep(1);
+
           }
         } else {
 
@@ -58,9 +61,6 @@ int main(int argc, char ** argv) {
     }
     return 0;
 
-    // register signal handler
-
-    // connect to named pipes
 
     // event loop:
 

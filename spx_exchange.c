@@ -1,3 +1,4 @@
+
 /**
  * comp2017 - assignment 3
  * Sam Kelly
@@ -6,7 +7,9 @@
 
 #include "spx_exchange.h"
 
+
 int read_flag = 0;
+int init_flag = 0;
 
 void handle_invalid_bin(int errno) {
 		printf("%s Error: Given trader binary doesn't exist\n", LOG_PREFIX);
@@ -14,8 +17,17 @@ void handle_invalid_bin(int errno) {
 }
 
 void read_sig(int errno) {
-		printf("%s Reading in exchange\n", LOG_PREFIX);
 		read_flag = 1;
+}
+
+struct order** delete_order(struct order** orders, int index) {
+	int cursor = index;
+	while (orders[cursor + 1] != NULL) {
+		orders[cursor] = orders[cursor + 1];
+		cursor++;
+	}
+	orders = realloc(orders, sizeof(struct order) * cursor);
+	return orders;
 }
 
 
@@ -46,9 +58,16 @@ struct order* sell_order(struct order* new_order, struct order** orders) {
 		// Booleans to check if the current order is compatible with the new order
 		int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
 		int price_valid = (orders[current_order]->price >= new_order->price);
-		if (product_valid && price_valid) {
+		if (product_valid && price_valid && orders[current_order]->type == BUY) {
 			if (orders[current_order]->qty <= new_order->qty) {
+				int cost = orders[current_order]->qty * new_order->price;
+				printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.", LOG_PREFIX, orders[current_order]->order_id,\
+								orders[current_order]->trader_id, new_order->order_id, new_order->trader_id, cost,\
+								(int)round(0.01 * cost));
+				orders = delete_order(orders, current_order);
 				// send signal to fill order to current_order.trader
+			} else {
+				new_order->qty -= orders[current_order]->qty;
 			}
 		}
 		current_order++;
@@ -103,9 +122,12 @@ char** read_products_file(char* fp) {
 	return products;
 }
 
-char** take_input() {
+char** take_input(int fd) {
 	char input[MAX_INPUT], *token;
-	read(3, input, MAX_INPUT); // will be a pipe +++
+	int result = read(fd, input, MAX_INPUT); // will be a pipe +++
+	if (result == -1) {
+		return (char**)NULL;
+	}
 	char** arg_array = (char**) malloc(0);
 	int args_length = 0;
 
@@ -133,13 +155,12 @@ char** take_input() {
 	return arg_array;
 }
 
-int write_pipe(int fd, char* message, pid_t pid) {
-	if (strlen(message) + 1 < MAX_INPUT) {
+int write_pipe(int fd, char* message) {
+	if (strlen(message) < MAX_INPUT) {
 		if (fd == -1) {
 			return -1;
 		}
-		write(fd, message, MAX_INPUT);
-		kill(pid, SIGUSR1);
+		write(fd, message, strlen(message) + 1);
 		return 1;
 	}
 	return -1;
@@ -154,15 +175,12 @@ int initialise_trader(char* path, int* pid_array, int index) {
 
 	if (pid_array[index] > 0) {
 		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
-		sleep(0.2);
 		return 1;
 	}
 
-	char ppid[MAX_PID];
 	char trader_id[MAX_TRADERS_BYTES];
 	sprintf(trader_id, "%d", index);
-	sprintf(ppid, "%d", getppid());
-	if (execl(path, trader_id, ppid, (char*)NULL) == -1) {
+	if (execl(path, path, trader_id, '\0') == -1) {
 		kill(getppid(), SIGUSR2);
 		kill(getpid(), 9);
 		return -1;
@@ -170,7 +188,7 @@ int initialise_trader(char* path, int* pid_array, int index) {
 	return 1;
 }
 
-int create_fifo(int* fds, char* path, int index) {
+int create_fifo(char* path) {
 	// +++ CHECK if there can be multiple exchanges???
 	unlink(path);//+++
 
@@ -178,9 +196,99 @@ int create_fifo(int* fds, char* path, int index) {
 		printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
 		return -1;
 	}
-	fds[index] = open(path, O_RDWR | O_NONBLOCK);
 	printf("%s Created FIFO %s\n", LOG_PREFIX, path);
 	return 1;
+}
+
+struct level* orderbook_helper(struct order* current_order, int* num_levels, int* num_type, struct level* levels) {
+
+	int valid = 1;
+
+	for (int level_cursor = 0; level_cursor < *num_levels; level_cursor++) {
+		if (current_order->price == levels[level_cursor].price && current_order->type == levels[level_cursor].type) {
+			valid = 0;
+			levels[level_cursor].num++;
+			levels[level_cursor].qty += current_order->qty;
+			break;
+		}
+	}
+
+	if (valid) {
+		num_levels++;
+		num_type++;
+		levels = realloc(levels, sizeof(struct level) * *num_levels);
+		struct level new_level = {current_order->price, 1, current_order->qty, current_order->type};
+		levels[*num_levels - 1] = new_level;
+	}
+	return levels;
+}
+
+void generate_orderbook(int num_products, char** products, struct order** orders) {
+
+	printf("%s	--ORDERBOOK--\n", LOG_PREFIX);
+
+	for (int product = 1; product <= num_products; product++) {
+
+		struct order** current_orders = malloc(0);
+		int num_levels = 0;
+		int num_sell_levels = 0;
+		int num_buy_levels = 0;
+		struct level* levels = malloc(0);
+		int num_orders = 0;
+		int cursor = 0;
+
+		while (orders[cursor] != NULL) {
+			if (strcmp(orders[cursor]->product, products[product]) == 0) {
+				if (orders[cursor]->type == SELL) {
+					levels = orderbook_helper(orders[cursor], &num_levels, &num_sell_levels, levels);	// +++ Check that these pointers are actually updated lol
+				}
+				if (orders[cursor]->type == BUY) {
+					levels = orderbook_helper(orders[cursor], &num_levels, &num_buy_levels, levels);
+				}
+				current_orders = realloc(current_orders, sizeof(struct order) * ++num_orders);
+				current_orders[num_orders-1] = orders[cursor];
+			}
+		}
+		printf("%s	Product: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
+
+		int sort_cursor = 0;
+		while (sort_cursor < num_levels) {
+
+			int max = 0;
+			int max_index;
+			for (int level = 0; level < num_levels; level++) {
+				if (levels[level].price > max) {
+					max_index = level;
+					max = levels[level].price;
+				}
+			}
+
+			char* type_str;
+			if (levels[max_index].type) {
+				type_str = "SELL";
+			} else {
+				type_str = "BUY";
+			}
+
+			char* order_str;
+			if (levels[max_index].num > 1) {
+				order_str = "orders";
+			} else {
+				order_str = "order";
+			}
+
+			printf("%s			%s %d @ $%d (%d %s)\n", LOG_PREFIX, type_str, levels[max_index].qty, levels[max_index].price, \
+						levels[max_index].num, order_str);
+
+
+			levels[sort_cursor] = levels[max_index];
+			for (int level = max_index; level > sort_cursor + 1; level--) {
+				levels[level] = levels[level - 1];
+			}
+			sort_cursor++;
+		}
+		free(levels);
+	}
 }
 
 int main(int argc, char **argv) {
@@ -193,50 +301,76 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 
-		int* fds = malloc(sizeof(int) * 2 * (argc - 2));
-		int fd_cursor = 0;
+		int* trader_fds = malloc(sizeof(int) * (argc - 2));
+		int* exchange_fds = malloc(sizeof(int) * (argc - 2));
 		int* pid_array = malloc((argc - 1) * sizeof(int));
 
 		signal(SIGUSR2, handle_invalid_bin);
 
 		for (int trader = 2; trader < argc; trader++) {
-			char path[PATH_LENGTH];
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
-			if (create_fifo(fds, path, fd_cursor++) == -1) {
+			// Creates named pipes for the exchange and traders
+			char exchange_path[PATH_LENGTH];
+			char trader_path[PATH_LENGTH];
+			snprintf(exchange_path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
+			if (create_fifo(exchange_path) == -1) {
 				return -1;
 			}
 
-			snprintf(path, PATH_LENGTH, TRADER_PATH, trader-2);
-			if (create_fifo(fds, path, fd_cursor++) == -1) {
+			snprintf(trader_path, PATH_LENGTH, TRADER_PATH, trader-2);
+			if (create_fifo(trader_path) == -1) {
 				return -1;
 			}
+
 			// Starts trader processes specified by command line arguments
 			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
 				return -1;
 			}
-			// +++ check connectivity if required
-			printf("%s Connected to %s\n", LOG_PREFIX, "/tmp/spx_exchange_0");
-			printf("%s Connected to %s\n", LOG_PREFIX, path);
-		}
+			// Connects to each named pipe
 
-		int index = 1;
-		while (fds[index] >= 0) {
-			write_pipe(fds[index], "MARKET OPEN;", pid_array[index-1]);
-			index++;
+			exchange_fds[trader - 2] = open(exchange_path, O_WRONLY);
+			printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
+
+			trader_fds[trader - 2] = open(trader_path, O_RDONLY);
+			printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
+		}
+		// Sending MARKET OPEN message to all exchange pipes
+		for (int index = 0; index < argc - 2; index++) {
+			write_pipe(exchange_fds[index], "MARKET OPEN;");
 		}
 
 		signal(SIGUSR1, read_sig);
+		sleep(1);
+		for (int index = 0; index < argc - 2; index++) {
+			kill(pid_array[index], SIGUSR1);
+		}
+
 
 		// Creates a null terminated array of orders
 		struct order** orders = malloc(sizeof(struct order));
 		orders[0] = (struct order*) NULL;
 
 		int running = 1;
+		int counter = 0;
 		while (running) {
+			char** arg_array;
+			int trader_number;
 			// use select here to monitor pipe +++
 			if (read_flag) {
 				printf("%s ", LOG_PREFIX);
-				char** arg_array = take_input();
+				for (int pipe = 0; pipe < argc - 2; pipe++) {
+						arg_array = take_input(trader_fds[pipe]);
+						if (arg_array != NULL) {
+							trader_number = pipe;
+							break;
+						}
+					}
+				char* last_arg = arg_array[4];
+				last_arg[strlen(last_arg)-1] = '\0';
+
+				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", trader_number, arg_array[0], arg_array[1], arg_array[2], arg_array[3], last_arg);
+				generate_orderbook(strtol(products[0], NULL, 10), products, orders);
+
+
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
 					printf("buy");
@@ -244,7 +378,7 @@ int main(int argc, char **argv) {
 
 				} else if (strcmp(arg_array[0], "SELL") == 0) {
 					printf("%s", arg_array[0]);
-					//Arg 2, consider how to get the trader id????? +++
+
 					struct order* new_order = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
 					printf("%s", new_order->product);
 					fflush(stdout);
@@ -257,7 +391,9 @@ int main(int argc, char **argv) {
 				}
 				read_flag = 0;
 			}
-
+			if (counter++ == 5) {
+				running = 0;
+			}
 			sleep(1); // Check for responsiveness, or add blocking io if necessary +++
 		}
 		// Free all mem
