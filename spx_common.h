@@ -2,6 +2,7 @@
 #define SPX_COMMON_H
 
 #define _POSIX_SOURCE
+#define _DEFAULT_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +15,6 @@
 #include <sys/wait.h>
 #include <math.h>
 
-#define _DEFAULT_SOURCE
 #define FIFO_EXCHANGE "/tmp/spx_exchange_%d"
 #define FIFO_TRADER "/tmp/spx_trader_%d"
 #define FEE_PERCENTAGE 1
