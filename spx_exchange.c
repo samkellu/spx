@@ -329,8 +329,6 @@ int main(int argc, char **argv) {
 		sigaction(SIGUSR2, &sig_act, NULL);
 		sigaction(SIGINT, &sig_act, NULL);
 
-		// signal(SIGUSR1, read_sig);
-		// signal(SIGCHLD, read_sig);
 
 		for (int trader = 2; trader < argc; trader++) {
 			// Creates named pipes for the exchange and traders
@@ -402,6 +400,11 @@ int main(int argc, char **argv) {
 					while (orders[cursor] != NULL) {
 						free(orders[cursor]);
 						cursor++;
+					}
+					cursor = 0;
+					while (cursor < argc - 2) {
+						unlink(exchange_fds[cursor]);
+						unlink(trader_fds[cursor]);
 					}
 					free(exchange_fds);
 					free(trader_fds);
