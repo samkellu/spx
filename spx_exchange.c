@@ -141,8 +141,9 @@ char** take_input(int fd) {
 	if (result == -1) {
 		return (char**)NULL;
 	}
-	char** arg_array = (char**) malloc(0);
-	int args_length = 0;
+	int args_length = 1;
+	char** arg_array = (char**) malloc(sizeof(char*));
+	arg_array[0] = (char*)NULL;
 
 	token = strtok(input, " ");
 	while (token != NULL) {
@@ -159,7 +160,8 @@ char** take_input(int fd) {
 		arg_array = realloc(arg_array, (args_length + 1) * sizeof(char**));
 		char* arg = malloc(PRODUCT_LENGTH);
 		memcpy(arg, token, PRODUCT_LENGTH);
-		arg_array[args_length] = arg;
+		arg_array[args_length - 1] = arg;
+		arg_array[args_length] = (char*)NULL;
 
 		// Traverse to next token
 		token = strtok(NULL, " ");
@@ -401,6 +403,7 @@ int main(int argc, char **argv) {
 						free(orders[cursor]);
 						cursor++;
 					}
+					free(orders);
 					cursor = 0;
 					while (cursor < argc - 2) {
 						char path[PATH_LENGTH];
@@ -408,9 +411,16 @@ int main(int argc, char **argv) {
 						unlink(path);
 						snprintf(path, PATH_LENGTH, TRADER_PATH, cursor);
 						unlink(path);
+						cursor++;
 					}
 					free(exchange_fds);
 					free(trader_fds);
+					int limit = strtol(products[0], NULL, 10);
+					for (int index = 0; index <= limit; index++) {
+						free(products[index]);
+					}
+					free(products);
+					printf("lmao bye\n");
 					return 0;
 				}
 			}
@@ -449,6 +459,12 @@ int main(int argc, char **argv) {
 				char* msg = malloc(MAX_INPUT);
 				sprintf(msg, "ACCEPTED %s", arg_array[1]);
 				write_pipe(trader_fds[trader_number], msg);
+
+				int cursor = 0;
+				while (arg_array[cursor] != NULL) {
+					free(arg_array[cursor++]);
+				}
+				free(arg_array);
 				free(msg);
 
 				read_flag = 0;
