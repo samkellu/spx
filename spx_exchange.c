@@ -403,8 +403,11 @@ int main(int argc, char **argv) {
 					}
 					cursor = 0;
 					while (cursor < argc - 2) {
-						unlink(exchange_fds[cursor]);
-						unlink(trader_fds[cursor]);
+						char path[PATH_LENGTH];
+						snprintf(path, PATH_LENGTH, EXCHANGE_PATH, cursor);
+						unlink(path);
+						snprintf(path, PATH_LENGTH, TRADER_PATH, cursor);
+						unlink(path);
 					}
 					free(exchange_fds);
 					free(trader_fds);
