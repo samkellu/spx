@@ -10,14 +10,20 @@
 
 int read_flag = 0;
 int init_flag = 0;
+int disconnect_trader = -1;
 
-void handle_invalid_bin(int errno) {
+void read_sig(int signo, siginfo_t *si, void *uc) {
+	if (signo == SIGUSR1) {
+		read_flag = 1;
+	} else if (signo == SIGUSR2) {
 		printf("%s Error: Given trader binary doesn't exist\n", LOG_PREFIX);
 		exit(0); // +++ replace with a graceful exit function
-}
-
-void read_sig(int errno) {
-		read_flag = 1;
+	} else if (signo == SIGCHLD) {
+		printf("sigchld");
+	} else if (signo == SIGINT) {
+		printf("Exitting...");
+		exit(0);
+	}
 }
 
 struct order** delete_order(struct order** orders, int index) {
@@ -31,7 +37,7 @@ struct order** delete_order(struct order** orders, int index) {
 }
 
 
-struct order* create_order(int type, int trader_id, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order* (*operation)(struct order*, struct order**), struct order** orders) {
+struct order** create_order(int type, int trader_id, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**), struct order** orders) {
  // Adding order to the exchange's array of orders/ memory management stuff
 	struct order* new_order = malloc(sizeof(struct order));
 	new_order->type = type;
@@ -41,8 +47,9 @@ struct order* create_order(int type, int trader_id, int order_id, char product[P
 	new_order->price = price;
 	new_order->trader_id = trader_id;
 
-	new_order = operation(new_order, orders);
-	return new_order;
+	orders = operation(new_order, orders);
+
+	return orders;
 }
 //
 // struct order* buy_order(int order_id, char product[PRODUCT_LENGTH], int qty, int price) {
@@ -51,7 +58,7 @@ struct order* create_order(int type, int trader_id, int order_id, char product[P
 // 	return new_order;
 // }
 //
-struct order* sell_order(struct order* new_order, struct order** orders) {
+struct order** sell_order(struct order* new_order, struct order** orders) {
 
 	int current_order = 0; // orders is null terminated, so 0 always exists
 	while (orders[current_order] != NULL) {
@@ -65,6 +72,7 @@ struct order* sell_order(struct order* new_order, struct order** orders) {
 								orders[current_order]->trader_id, new_order->order_id, new_order->trader_id, cost,\
 								(int)round(0.01 * cost));
 				orders = delete_order(orders, current_order);
+				current_order--;
 				// send signal to fill order to current_order.trader
 			} else {
 				new_order->qty -= orders[current_order]->qty;
@@ -72,7 +80,11 @@ struct order* sell_order(struct order* new_order, struct order** orders) {
 		}
 		current_order++;
 	}
-	return new_order;
+
+	orders = realloc(orders, sizeof(struct order) * (current_order + 2));
+	orders[current_order] = new_order;
+	orders[current_order + 1] = NULL;
+	return orders;
 }
 //
 // struct order* amend_order(int order_id, int qty, int price) {
@@ -95,7 +107,7 @@ char** read_products_file(char* fp) {
 		return NULL;
 	}
 	// Number of products in product file
-	char length_str[PRODUCT_LENGTH]; // +++ get actual length for this
+	char* length_str = malloc(PRODUCT_LENGTH); // +++ get actual length for this
 	fgets(length_str, PRODUCT_LENGTH, file);
 	int file_length = strtol(length_str, NULL, 10) + 1;
 	char** products = (char**) malloc(sizeof(char**) * file_length);
@@ -180,7 +192,7 @@ int initialise_trader(char* path, int* pid_array, int index) {
 
 	char trader_id[MAX_TRADERS_BYTES];
 	sprintf(trader_id, "%d", index);
-	if (execl(path, path, trader_id, '\0') == -1) {
+	if (execl(path, path, trader_id, NULL) == -1) {
 		kill(getppid(), SIGUSR2);
 		kill(getpid(), 9);
 		return -1;
@@ -214,8 +226,12 @@ struct level* orderbook_helper(struct order* current_order, int* num_levels, int
 	}
 
 	if (valid) {
-		num_levels++;
-		num_type++;
+		printf("%p\n",num_levels);
+		*num_levels = *num_levels + 1;
+		*num_type = *num_type + 1;
+		printf("%p",num_levels);
+		printf("what");
+		fflush(stdout);
 		levels = realloc(levels, sizeof(struct level) * *num_levels);
 		struct level new_level = {current_order->price, 1, current_order->qty, current_order->type};
 		levels[*num_levels - 1] = new_level;
@@ -226,20 +242,21 @@ struct level* orderbook_helper(struct order* current_order, int* num_levels, int
 void generate_orderbook(int num_products, char** products, struct order** orders) {
 
 	printf("%s	--ORDERBOOK--\n", LOG_PREFIX);
+	fflush(stdout);
 
 	for (int product = 1; product <= num_products; product++) {
-
 		struct order** current_orders = malloc(0);
 		int num_levels = 0;
 		int num_sell_levels = 0;
 		int num_buy_levels = 0;
+
 		struct level* levels = malloc(0);
 		int num_orders = 0;
 		int cursor = 0;
-
 		while (orders[cursor] != NULL) {
 			if (strcmp(orders[cursor]->product, products[product]) == 0) {
 				if (orders[cursor]->type == SELL) {
+
 					levels = orderbook_helper(orders[cursor], &num_levels, &num_sell_levels, levels);	// +++ Check that these pointers are actually updated lol
 				}
 				if (orders[cursor]->type == BUY) {
@@ -249,8 +266,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 				current_orders[num_orders-1] = orders[cursor];
 			}
 		}
-		printf("%s	Product: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
-
+		printf("%s		Product: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
 		int sort_cursor = 0;
 		while (sort_cursor < num_levels) {
 
@@ -280,7 +296,6 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 			printf("%s			%s %d @ $%d (%d %s)\n", LOG_PREFIX, type_str, levels[max_index].qty, levels[max_index].price, \
 						levels[max_index].num, order_str);
 
-
 			levels[sort_cursor] = levels[max_index];
 			for (int level = max_index; level > sort_cursor + 1; level--) {
 				levels[level] = levels[level - 1];
@@ -305,7 +320,19 @@ int main(int argc, char **argv) {
 		int* exchange_fds = malloc(sizeof(int) * (argc - 2));
 		int* pid_array = malloc((argc - 1) * sizeof(int));
 
-		signal(SIGUSR2, handle_invalid_bin);
+		struct sigaction sig_act;
+
+		sig_act.sa_handler = read_sig;
+		sigemptyset(&sig_act.sa_mask);
+		sig_act.sa_flags = SA_SIGINFO;
+
+		sigaction(SIGCLD, &sig_act, NULL);
+		sigaction(SIGUSR1, &sig_act, NULL);
+		sigaction(SIGUSR2, &sig_act, NULL);
+		sigaction(SIGINT, &sig_act, NULL);
+
+		// signal(SIGUSR1, read_sig);
+		// signal(SIGCHLD, read_sig);
 
 		for (int trader = 2; trader < argc; trader++) {
 			// Creates named pipes for the exchange and traders
@@ -338,8 +365,7 @@ int main(int argc, char **argv) {
 			write_pipe(exchange_fds[index], "MARKET OPEN;");
 		}
 
-		signal(SIGUSR1, read_sig);
-		sleep(1);
+		// signal(SIGUSR1, read_sig);
 		for (int index = 0; index < argc - 2; index++) {
 			kill(pid_array[index], SIGUSR1);
 		}
@@ -353,35 +379,27 @@ int main(int argc, char **argv) {
 		int counter = 0;
 		while (running) {
 			char** arg_array;
-			int trader_number;
+			// memset(arg_array, 0, sizeof(char*) * 5); // +++ magic number
+			int trader_number = -1;
 			// use select here to monitor pipe +++
 			if (read_flag) {
 				printf("%s ", LOG_PREFIX);
 				for (int pipe = 0; pipe < argc - 2; pipe++) {
-						arg_array = take_input(trader_fds[pipe]);
-						if (arg_array != NULL) {
-							trader_number = pipe;
-							break;
-						}
+					arg_array = take_input(trader_fds[pipe]);
+					if (arg_array != NULL) {
+						trader_number = pipe;
+						break;
 					}
-				char* last_arg = arg_array[4];
-				last_arg[strlen(last_arg)-1] = '\0';
-
-				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", trader_number, arg_array[0], arg_array[1], arg_array[2], arg_array[3], last_arg);
-				generate_orderbook(strtol(products[0], NULL, 10), products, orders);
-
-
+				}
+				arg_array[4][strlen(arg_array[4])-1] = '\0';
+				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", trader_number, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
 					printf("buy");
 					// create_order(BUY, int order_id, char product[PRODUCT_LENGTH], int qty, int price, &buy_order)
 
 				} else if (strcmp(arg_array[0], "SELL") == 0) {
-					printf("%s", arg_array[0]);
-
-					struct order* new_order = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
-					printf("%s", new_order->product);
-					fflush(stdout);
+					orders = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
 
 				} else if (strcmp(arg_array[0], "AMEND") == 0) {
 					printf("amend");
@@ -389,8 +407,18 @@ int main(int argc, char **argv) {
 				} else if (strcmp(arg_array[0], "DEL") == 0) {
 					printf("del");
 				}
+
+				// Generating and displaying the orderbook for the exchange
+				generate_orderbook(strtol(products[0], NULL, 10), products, orders);
+				char* msg = malloc(MAX_INPUT);
+				sprintf(msg, "ACCEPTED %s", arg_array[1]);
+				write_pipe(trader_fds[trader_number], msg);
+				free(msg);
+
 				read_flag = 0;
 			}
+
+
 			if (counter++ == 5) {
 				running = 0;
 			}

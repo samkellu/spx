@@ -25,8 +25,6 @@ int main(int argc, char ** argv) {
     int exchange_fd = open(path, O_RDWR);
     sprintf(path, "/tmp/spx_trader_%d", id);
     int trader_fd = open(path, O_RDWR);
-    printf("why");
-    fflush(stdout);
 
     int debug_count = 0;
 
@@ -38,8 +36,11 @@ int main(int argc, char ** argv) {
       }
 
       if (market_open) {
-        write(trader_fd, "SELL what the fuck", strlen("SELL what the fuck") + 1);
+        write(trader_fd, "SELL 0 GPU 1 12", strlen("SELL 0 GPU 1 12;") + 1);
         kill(ppid, SIGUSR1);
+        sleep(1);
+        kill(ppid, SIGCHLD);
+        return 0;
       }
 
       if (read_flag) {
@@ -50,8 +51,6 @@ int main(int argc, char ** argv) {
         if (!market_open) {
           if (strcmp(buf, "MARKET OPEN;") == 0) {
             market_open = 1;
-            sleep(1);
-
           }
         } else {
 
