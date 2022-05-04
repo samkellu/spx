@@ -31,15 +31,14 @@ int main(int argc, char ** argv) {
     while (running) {
       sleep(1);
       debug_count++;
-      if (debug_count == 10) {
+      if (debug_count == 20) {
         return 0;
       }
 
       if (market_open) {
-        write(trader_fd, "SELL 0 GPU 1 12", strlen("SELL 0 GPU 1 12;") + 1);
+        write(trader_fd, "SELL 0 GPU 1 12;", strlen("SELL 0 GPU 1 12;") + 1);
         kill(ppid, SIGUSR1);
-        sleep(1);
-        kill(ppid, SIGCHLD);
+        sleep(2);
         return 0;
       }
 

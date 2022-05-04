@@ -19,7 +19,8 @@ void read_sig(int signo, siginfo_t *si, void *uc) {
 		printf("%s Error: Given trader binary doesn't exist\n", LOG_PREFIX);
 		exit(0); // +++ replace with a graceful exit function
 	} else if (signo == SIGCHLD) {
-		printf("sigchld");
+		disconnect_trader = si->si_pid;
+		return;
 	} else if (signo == SIGINT) {
 		printf("Exitting...");
 		exit(0);
@@ -226,12 +227,8 @@ struct level* orderbook_helper(struct order* current_order, int* num_levels, int
 	}
 
 	if (valid) {
-		printf("%p\n",num_levels);
 		*num_levels = *num_levels + 1;
 		*num_type = *num_type + 1;
-		printf("%p",num_levels);
-		printf("what");
-		fflush(stdout);
 		levels = realloc(levels, sizeof(struct level) * *num_levels);
 		struct level new_level = {current_order->price, 1, current_order->qty, current_order->type};
 		levels[*num_levels - 1] = new_level;
@@ -245,26 +242,26 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 	fflush(stdout);
 
 	for (int product = 1; product <= num_products; product++) {
-		struct order** current_orders = malloc(0);
+		// struct order** current_orders = malloc(0);
 		int num_levels = 0;
 		int num_sell_levels = 0;
 		int num_buy_levels = 0;
 
 		struct level* levels = malloc(0);
-		int num_orders = 0;
+		// int num_orders = 0;
 		int cursor = 0;
 		while (orders[cursor] != NULL) {
 			if (strcmp(orders[cursor]->product, products[product]) == 0) {
 				if (orders[cursor]->type == SELL) {
-
 					levels = orderbook_helper(orders[cursor], &num_levels, &num_sell_levels, levels);	// +++ Check that these pointers are actually updated lol
 				}
 				if (orders[cursor]->type == BUY) {
 					levels = orderbook_helper(orders[cursor], &num_levels, &num_buy_levels, levels);
 				}
-				current_orders = realloc(current_orders, sizeof(struct order) * ++num_orders);
-				current_orders[num_orders-1] = orders[cursor];
+				// current_orders = realloc(current_orders, sizeof(struct order) * ++num_orders);
+				// current_orders[num_orders-1] = orders[cursor];
 			}
+			cursor++;
 		}
 		printf("%s		Product: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
 		int sort_cursor = 0;
@@ -319,12 +316,13 @@ int main(int argc, char **argv) {
 		int* trader_fds = malloc(sizeof(int) * (argc - 2));
 		int* exchange_fds = malloc(sizeof(int) * (argc - 2));
 		int* pid_array = malloc((argc - 1) * sizeof(int));
+		pid_array[argc - 2] = -1;
 
 		struct sigaction sig_act;
 
-		sig_act.sa_handler = read_sig;
+		sig_act.sa_handler = (void *)read_sig;
 		sigemptyset(&sig_act.sa_mask);
-		sig_act.sa_flags = SA_SIGINFO;
+		sig_act.sa_flags = SA_RESTART | SA_SIGINFO;
 
 		sigaction(SIGCLD, &sig_act, NULL);
 		sigaction(SIGUSR1, &sig_act, NULL);
@@ -378,6 +376,38 @@ int main(int argc, char **argv) {
 		int running = 1;
 		int counter = 0;
 		while (running) {
+
+			if (disconnect_trader != -1) {
+				int valid = 0;
+				int cursor = 0;
+
+				while (pid_array[cursor] != -1) {
+					if (disconnect_trader == pid_array[cursor]) {
+						printf("%s Trader %d disconnected\n", LOG_PREFIX, cursor);
+						valid = 1;
+					}
+					if (valid && pid_array[cursor] != -1) {
+						pid_array[cursor] = pid_array[cursor + 1];
+					}
+					cursor++;
+				}
+				disconnect_trader = -1;
+
+				if (cursor == 1) {
+					printf("%s Trading completed\n", LOG_PREFIX);
+					int total_fees = 69420;
+					printf("%s Exchange fees collected: $%d\n", LOG_PREFIX, total_fees);
+					free(pid_array);
+					int cursor = 0;
+					while (orders[cursor] != NULL) {
+						free(orders[cursor]);
+						cursor++;
+					}
+					free(exchange_fds);
+					free(trader_fds);
+					return 0;
+				}
+			}
 			char** arg_array;
 			// memset(arg_array, 0, sizeof(char*) * 5); // +++ magic number
 			int trader_number = -1;
@@ -419,7 +449,7 @@ int main(int argc, char **argv) {
 			}
 
 
-			if (counter++ == 5) {
+			if (counter++ == 20) {
 				running = 0;
 			}
 			sleep(1); // Check for responsiveness, or add blocking io if necessary +++
