@@ -531,7 +531,7 @@ int main(int argc, char **argv) {
 		int running = 1;
 		// int counter = 0;
 		while (running) {
-			// Need a list of current traders to update when traders dc+++
+
 			if (disconnect_trader != -1) {
 				traders = disconnect(traders, orders, products, argc);
 				if (traders == NULL) {
@@ -539,7 +539,7 @@ int main(int argc, char **argv) {
 				}
 			}
 
-			char** arg_array = NULL;
+			char** arg_array;
 			int trader_number = -1;
 			// use select here to monitor pipe +++
 			if (read_trader != -1) {
@@ -555,7 +555,7 @@ int main(int argc, char **argv) {
 					cursor++;
 				}
 
-				if (arg_array == NULL) {
+				if (traders[cursor] == NULL) {
 					printf("yoikes");
 					fflush(stdout);
 					continue;
