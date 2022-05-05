@@ -62,6 +62,8 @@ struct order** create_order(int type, int trader_id, int order_id, char product[
 	new_order->price = price;
 	new_order->trader_id = trader_id;
 
+	orders = operation(new_order, orders);
+
 	return orders;
 }
 
@@ -69,6 +71,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 	int matching = 1;
 
 	while (matching) {
+
 		struct order* cheapest_sell = NULL;
 		int cheapest_index = 0;
 		int current_order = 0; // orders is null terminated, so 0 always exists
@@ -440,7 +443,7 @@ int main(int argc, char **argv) {
 
 		// Creates a null terminated array of orders
 		struct order** orders = malloc(sizeof(struct order));
-		orders[0] = (struct order*) NULL;
+		orders[0] = NULL;
 
 		int running = 1;
 		int counter = 0;

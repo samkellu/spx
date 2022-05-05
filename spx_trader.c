@@ -7,8 +7,6 @@ int market_open = 0;
 
 void sig_read(int errno) {
   read_flag = 1;
-  printf("ww");
-  fflush(stdout);
   return;
 }
 
@@ -46,13 +44,8 @@ int main(int argc, char ** argv) {
 
       if (read_flag) {
         char buf[MAX_INPUT] = "";
-        printf("here");
-        fflush(stdout);
         read(exchange_fd, buf, MAX_INPUT);
         printf("[Trader %d] [t=%d] Received from SPX: %s\n", id, 0, buf);
-        fflush(stdout);
-        printf("also here");
-        fflush(stdout);
 
         if (!market_open) {
           if (strcmp(buf, "MARKET OPEN;") == 0) {
