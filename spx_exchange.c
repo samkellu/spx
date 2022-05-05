@@ -555,10 +555,10 @@ int main(int argc, char **argv) {
 
 				int arg_cursor = 0;
 
-				printf("%s [T%d] Parsing command: <",LOG_PREFIX, traders[cursor]->id);
+				printf("%s [T%d] Parsing command: <", LOG_PREFIX, traders[cursor]->id);
 				while (arg_array[arg_cursor] != NULL) {
 
-					if (arg_array[arg_cursor + 1] == NULL) {
+					if (arg_cursor == 4) {
 						for (int cursor = 0; cursor < strlen(arg_array[arg_cursor]); cursor++) {
 							if (arg_array[arg_cursor][cursor] == ';' || arg_array[arg_cursor][cursor] == '\n') {
 								arg_array[arg_cursor][cursor] = '\0';
