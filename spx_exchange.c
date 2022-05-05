@@ -42,6 +42,7 @@ int write_pipe(int fd, char* message) {
 
 struct order** delete_order(struct order** orders, int index) {
 	int cursor = index;
+	free(orders[cursor]);
 	while (orders[cursor + 1] != NULL) {
 		orders[cursor] = orders[cursor + 1];
 		cursor++;
@@ -123,17 +124,18 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 		}
 
 		if (new_order->qty != 0) {
-
-			int cursor = 0;
-			while (orders[cursor] != NULL) {
-				cursor++;
-			}
-
-			orders = realloc(orders, sizeof(struct order) * (cursor + 2));
-			orders[cursor] = new_order;
-			orders[cursor + 1] = NULL;
 			break;
 		}
+	}
+	if (new_order->qty != 0) {
+		int cursor = 0;
+		while (orders[cursor] != NULL) {
+			cursor++;
+		}
+
+		orders = realloc(orders, sizeof(struct order) * (cursor + 2));
+		orders[cursor] = new_order;
+		orders[cursor + 1] = NULL;
 	}
 	return orders;
 }

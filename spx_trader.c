@@ -36,7 +36,7 @@ int main(int argc, char ** argv) {
       }
 
       if (market_open) {
-        write(trader_fd, "SELL 0 GPU 1 12;\n", strlen("SELL 0 GPU 1 12;\n") + 1);
+        write(trader_fd, "BUY 0 GPU 1 12;\n", strlen("BUY 0 GPU 1 12;\n") + 1);
         kill(ppid, SIGUSR1);
         sleep(2);
         return 0;
