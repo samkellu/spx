@@ -252,6 +252,9 @@ char** take_input(int fd) {
 		token = strtok(NULL, " ");
 		args_length++;
 	}
+	if (args_length != 6) {
+		return NULL; // +++
+	}
 	return arg_array;
 }
 
@@ -542,22 +545,35 @@ int main(int argc, char **argv) {
 			// use select here to monitor pipe +++
 			if (read_trader != -1) {
 				int cursor = 0;
-
+				int args_valid = 1;
 				while (traders[cursor] != NULL) {
 					if (traders[cursor]->pid == read_trader) {
+
 						arg_array = take_input(traders[cursor]->trader_fd);
+						if (arg_array == NULL) {
+
+							// Inform the trader that their order was invalid
+							char* msg = malloc(MAX_INPUT);
+							sprintf(msg, "INVALID;");
+							write_pipe(traders[cursor]->exchange_fd, msg);
+							kill(traders[cursor]->pid, SIGUSR1);
+							free(msg);
+							free(arg_array);
+							args_valid = 0;
+						}
 						break;
 					}
 					cursor++;
 				}
+				
+				if (!args_valid) {
+					continue;
+				}
 
-				// for (int cursor = 0; cursor < strlen(arg_array[4]); cursor++) {
-				// 	if (arg_array[4][cursor] == ';' || arg_array[4][cursor] == '\n') {
-				// 		arg_array[4][cursor] = '\0';
-				// 	}
-				// }
-				if (arg_array[4][strlen(arg_array[4]) - 1] == ';') {
-					arg_array[4][strlen(arg_array[4]) - 1] = '\0';
+				for (int cursor = 0; cursor < strlen(arg_array[4]); cursor++) {
+					if (arg_array[4][cursor] == ';' || arg_array[4][cursor] == '\n') {
+						arg_array[4][cursor] = '\0';
+					}
 				}
 
 				printf("%s [T%d] Parsing command: <%s %s %s %s %s>\n", LOG_PREFIX, traders[cursor]->id, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
