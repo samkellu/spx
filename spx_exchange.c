@@ -35,7 +35,6 @@ int write_pipe(int fd, char* message) {
 			return -1;
 		}
 		write(fd, message, strlen(message) + 1);
-		printf("%s", message);
 		return 1;
 	}
 	return -1;
@@ -543,7 +542,6 @@ int main(int argc, char **argv) {
 			int trader_number = -1;
 			// use select here to monitor pipe +++
 			if (read_trader != -1) {
-				printf("%s ", LOG_PREFIX);
 				int cursor = 0;
 
 				while (traders[cursor] != NULL) {
@@ -563,10 +561,10 @@ int main(int argc, char **argv) {
 				// Inform the trader that their order was accepted
 				char* msg = malloc(MAX_INPUT);
 				sprintf(msg, "ACCEPTED %s", arg_array[1]);
-				printf("%d",write_pipe(traders[cursor]->trader_fd, msg));
+				printf("%d",write_pipe(traders[cursor]->exchange_fd, msg));
 				kill(traders[cursor]->pid, SIGUSR1);
 
-				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", traders[cursor]->id, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
+				printf("%s [T%d] Parsing command: <%s %s %s %s %s>\n", LOG_PREFIX, traders[cursor]->id, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
 					orders = create_order(BUY, trader_number, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &buy_order, orders);
