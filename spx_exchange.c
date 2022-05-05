@@ -253,6 +253,10 @@ char** take_input(int fd) {
 		args_length++;
 	}
 	if (args_length != 6) {
+		for (int cursor = 0; cursor < args_length; cursor++) {
+			free(arg_array[cursor]);
+		}
+		free(arg_array);
 		return NULL; // +++
 	}
 	return arg_array;
@@ -558,14 +562,13 @@ int main(int argc, char **argv) {
 							write_pipe(traders[cursor]->exchange_fd, msg);
 							kill(traders[cursor]->pid, SIGUSR1);
 							free(msg);
-							free(arg_array);
 							args_valid = 0;
 						}
 						break;
 					}
 					cursor++;
 				}
-				
+
 				if (!args_valid) {
 					continue;
 				}
