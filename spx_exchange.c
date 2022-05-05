@@ -556,6 +556,8 @@ int main(int argc, char **argv) {
 				}
 
 				if (arg_array == NULL) {
+					printf("yoikes");
+					fflush(stdout);
 					continue;
 				}
 
