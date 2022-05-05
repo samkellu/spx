@@ -607,6 +607,7 @@ int main(int argc, char **argv) {
 						write_pipe(traders[index]->exchange_fd, msg);
 						kill(traders[index]->pid, SIGUSR1);
 					}
+					index++;
 				}
 				free(msg);
 
