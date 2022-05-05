@@ -551,10 +551,13 @@ int main(int argc, char **argv) {
 					cursor++;
 				}
 
-				for (int cursor = 0; cursor < strlen(arg_array[4]); cursor++) {
-					if (arg_array[4][cursor] == ';' || arg_array[4][cursor] == '\n') {
-						arg_array[4][cursor] = '\0';
-					}
+				// for (int cursor = 0; cursor < strlen(arg_array[4]); cursor++) {
+				// 	if (arg_array[4][cursor] == ';' || arg_array[4][cursor] == '\n') {
+				// 		arg_array[4][cursor] = '\0';
+				// 	}
+				// }
+				if (arg_array[4][strlen(arg_array[4]) - 1] == ';') {
+					arg_array[4][strlen(arg_array[4]) - 1] = '\0';
 				}
 
 				printf("%s [T%d] Parsing command: <%s %s %s %s %s>\n", LOG_PREFIX, traders[cursor]->id, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
