@@ -379,11 +379,11 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 		free(levels);
 	}
 
-	printf("%s	--POSITIONS---\n", LOG_PREFIX);
+	printf("%s	--POSITIONS--\n", LOG_PREFIX);
 
 	int cursor = 0;
 	while (traders[cursor] != NULL) {
-		printf("%s Trader %d: ", LOG_PREFIX, traders[cursor]->id);
+		printf("%s	Trader %d: ", LOG_PREFIX, traders[cursor]->id);
 
 		for (int product_num = 0; product_num < num_products; product_num++) {
 			printf("%s %d ($%d)", products[product_num + 1], traders[cursor]->position_qty[product_num], traders[cursor]->position_cost[product_num]);
@@ -553,7 +553,7 @@ int main(int argc, char **argv) {
 						arg_array[4][cursor] = '\0';
 					}
 				}
-				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", trader_number, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
+				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", traders[cursor]->id, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
 					orders = create_order(BUY, trader_number, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &buy_order, orders);
