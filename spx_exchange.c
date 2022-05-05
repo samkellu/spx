@@ -345,7 +345,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 		while (sort_cursor < num_levels) {
 
 			int max = 0;
-			int max_index;
+			int max_index = -1;
 			for (int level = 0; level < num_levels; level++) {
 				if (levels[level].price > max) {
 					max_index = level;
@@ -601,13 +601,13 @@ int main(int argc, char **argv) {
 					continue;
 				}
 
-				int amount = strtol(arg_array[3], NULL, 10);
+				int qty = strtol(arg_array[3], NULL, 10);
 				int price = strtol(arg_array[4], NULL, 10);
 				int order_id = strtol(arg_array[1], NULL, 10);
 
 				int id_valid = (order_id == traders[cursor]->current_order_id);
 				int product_valid = 0;
-				int amount_valid = (amount > 0 && amount < 1000000);
+				int qty_valid = (qty > 0 && qty < 1000000);
 				int price_valid = (price > 0 && price < 1000000);
 
 				for (int product = 1; product <= strtol(products[0], NULL, 10); product++) {
@@ -618,13 +618,13 @@ int main(int argc, char **argv) {
 				}
 
 				char* msg = malloc(MAX_INPUT);
-				if (id_valid && product_valid && amount_valid && price_valid) {
+				if (id_valid && product_valid && qty_valid && price_valid) {
 
 					if (strcmp(arg_array[0], "BUY") == 0) {
-						orders = create_order(BUY, traders[cursor]->id, order_id, arg_array[2], amount, price, &buy_order, orders);
+						orders = create_order(BUY, traders[cursor]->id, order_id, arg_array[2], qty, price, &buy_order, orders);
 
 					} else if (strcmp(arg_array[0], "SELL") == 0) {
-						orders = create_order(SELL, traders[cursor]->id, order_id, arg_array[2], amount, price, &sell_order, orders);
+						orders = create_order(SELL, traders[cursor]->id, order_id, arg_array[2], qty, price, &sell_order, orders);
 
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
 						printf("amend");
@@ -640,7 +640,7 @@ int main(int argc, char **argv) {
 
 					char* market_msg = malloc(MAX_INPUT);
 					int index = 0;
-					sprintf(market_msg, "MARKET %s %s %d %d;", arg_array[0], arg_array[2], amount, price);
+					sprintf(market_msg, "MARKET %s %s %d %d;", arg_array[0], arg_array[2], qty, price);
 
 					while (traders[index] != NULL) {
 						if (index != cursor) {
