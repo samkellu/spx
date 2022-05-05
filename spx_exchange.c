@@ -34,7 +34,7 @@ int write_pipe(int fd, char* message) {
 		if (fd == -1) {
 			return -1;
 		}
-		write(fd, message, strlen(message) + 1);
+		write(fd, message, strlen(message));
 		return 1;
 	}
 	return -1;
@@ -574,7 +574,7 @@ int main(int argc, char **argv) {
 
 				// Inform the trader that their order was accepted
 				char* msg = malloc(MAX_INPUT);
-				sprintf(msg, "ACCEPTED %ld;", strtol(arg_array[1], NULL, 10));
+				sprintf(msg, "ACCEPTED %s;", arg_array[1]);
 				write_pipe(traders[cursor]->exchange_fd, msg);
 				free(msg);
 				kill(traders[cursor]->pid, SIGUSR1);
