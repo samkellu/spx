@@ -23,6 +23,15 @@ struct order {
   int trader_id;
 };
 
+struct trader {
+  int id;
+  pid_t pid;
+  int exchange_fd;
+  int trader_fd;
+  int* position_qty;
+  int* position_cost;
+};
+
 struct level {
   int price;
   int num;

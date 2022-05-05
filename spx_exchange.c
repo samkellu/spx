@@ -8,7 +8,7 @@
 #include "spx_exchange.h"
 
 
-int read_flag = 0;
+int read_trader = -1;
 int init_flag = 0;
 int disconnect_trader = -1;
 int total_fees = 0;
@@ -16,7 +16,7 @@ int total_fees = 0;
 
 void read_sig(int signo, siginfo_t *si, void *uc) {
 	if (signo == SIGUSR1) {
-		read_flag = 1;
+		read_trader = si->si_pid;
 	} else if (signo == SIGUSR2) {
 		printf("%s Error: Given trader binary doesn't exist\n", LOG_PREFIX);
 		exit(0); // +++ replace with a graceful exit function
@@ -255,16 +255,21 @@ char** take_input(int fd) {
 	return arg_array;
 }
 
-int initialise_trader(char* path, int* pid_array, int index) {
-	pid_array[index] = fork();
-	if (pid_array[index] == -1) {
+struct trader* initialise_trader(char* path, int* pid_array, int index, int num_products) {
+
+	struct trader* new_trader = malloc(sizeof(struct trader));
+	new_trader->pid = fork();
+	new_trader->id = index;
+	new_trader->position_qty = calloc(sizeof(int), sizeof(int) * num_products);
+	new_trader->position_cost = calloc(sizeof(int), sizeof(int) * num_products);
+	if (new_trader->pid == -1) {
 		printf("%s Fork failed\n", LOG_PREFIX);
-		return -1;
+		return NULL;
 	}
 
-	if (pid_array[index] > 0) {
+	if (new_trader->pid > 0) {
 		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
-		return 1;
+		return new_trader;
 	}
 
 	char trader_id[MAX_TRADERS_BYTES];
@@ -272,9 +277,9 @@ int initialise_trader(char* path, int* pid_array, int index) {
 	if (execl(path, path, trader_id, NULL) == -1) {
 		kill(getppid(), SIGUSR2);
 		kill(getpid(), 9);
-		return -1;
+		return NULL;
 	}
-	return 1;
+	return new_trader;
 }
 
 int create_fifo(char* path) {
@@ -311,7 +316,7 @@ struct level* orderbook_helper(struct order* current_order, int* num_levels, int
 	return levels;
 }
 
-void generate_orderbook(int num_products, char** products, struct order** orders) {
+void generate_orderbook(int num_products, char** products, struct order** orders, struct trader** traders) {
 
 	printf("%s	--ORDERBOOK--\n", LOG_PREFIX);
 	fflush(stdout);
@@ -323,7 +328,6 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 		int num_buy_levels = 0;
 
 		struct level* levels = malloc(0);
-		// int num_orders = 0; +++
 		int cursor = 0;
 		while (orders[cursor] != NULL) {
 			if (strcmp(orders[cursor]->product, products[product]) == 0) {
@@ -333,8 +337,6 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 				if (orders[cursor]->type == BUY) {
 					levels = orderbook_helper(orders[cursor], &num_levels, &num_buy_levels, levels);
 				}
-				// current_orders = realloc(current_orders, sizeof(struct order) * ++num_orders);
-				// current_orders[num_orders-1] = orders[cursor];
 			}
 			cursor++;
 		}
@@ -376,6 +378,23 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 		}
 		free(levels);
 	}
+
+	printf("%s	--POSITIONS---\n", LOG_PREFIX);
+
+	int cursor = 0;
+	while (traders[cursor] != NULL) {
+		printf("%s Trader %d: ", LOG_PREFIX, traders[cursor]->id);
+
+		for (int product_num = 0; product_num < num_products; product_num++) {
+			printf("%s %d ($%d)", products[product_num + 1], traders[cursor]->position_qty[product_num], traders[cursor]->position_cost[product_num]);
+			if (product_num != num_products - 1) {
+				printf(", ");
+			} else {
+				printf("\n");
+			}
+		}
+		cursor++;
+	}
 }
 
 int main(int argc, char **argv) {
@@ -387,11 +406,12 @@ int main(int argc, char **argv) {
 			printf("%s Error: Products file does not exist", LOG_PREFIX);
 			return -1;
 		}
-
-		int* trader_fds = malloc(sizeof(int) * (argc - 2));
-		int* exchange_fds = malloc(sizeof(int) * (argc - 2));
-		int* pid_array = malloc((argc - 1) * sizeof(int));
-		pid_array[argc - 2] = -1;
+// +++ defunct
+		// int* trader_fds = malloc(sizeof(int) * (argc - 2));
+		// int* exchange_fds = malloc(sizeof(int) * (argc - 2));
+		struct trader** traders = malloc(sizeof(struct trader) * (argc - 1));
+		traders[argc - 2] = NULL;
+		int* pid_array = malloc(sizeof(int) * (argc - 1));
 
 		struct sigaction sig_act;
 
@@ -420,24 +440,27 @@ int main(int argc, char **argv) {
 			}
 
 			// Starts trader processes specified by command line arguments
-			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
+			traders[trader-2] = initialise_trader(argv[trader], pid_array, trader-2, strtol(products[0], NULL, 10));
+			if (traders[trader-2] == NULL) {
 				return -1;
 			}
 
 			// Connects to each named pipe
-			exchange_fds[trader - 2] = open(exchange_path, O_WRONLY);
+			traders[trader-2]->exchange_fd = open(exchange_path, O_WRONLY);
 			printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
 
-			trader_fds[trader - 2] = open(trader_path, O_RDONLY);
+			traders[trader-2]->trader_fd = open(trader_path, O_RDONLY);
 			printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
 		}
 		// Sending MARKET OPEN message to all exchange pipes
-		for (int index = 0; index < argc - 2; index++) {
-			write_pipe(exchange_fds[index], "MARKET OPEN;");
+		int cursor = 0;
+		while (traders[cursor] != NULL) {
+			write_pipe(traders[cursor++]->exchange_fd, "MARKET OPEN;");
 		}
 
-		for (int index = 0; index < argc - 2; index++) {
-			kill(pid_array[index], SIGUSR1);
+		cursor = 0;
+		while (traders[cursor] != NULL) {
+			kill(traders[cursor++]->pid, SIGUSR1);
 		}
 
 
@@ -453,16 +476,26 @@ int main(int argc, char **argv) {
 				int valid = 0;
 				int cursor = 0;
 
-				while (pid_array[cursor] != -1) {
-					if (disconnect_trader == pid_array[cursor]) {
-						printf("%s Trader %d disconnected\n", LOG_PREFIX, cursor);
+				while (traders[cursor] != NULL) {
+					if (disconnect_trader == traders[cursor]->pid) {
+						printf("%s Trader %d disconnected\n", LOG_PREFIX, traders[cursor]->id);
+						free(traders[cursor]->position_qty);
+						free(traders[cursor]->position_cost);
+						free(traders[cursor]);
 						valid = 1;
 					}
 					if (valid && pid_array[cursor] != -1) {
-						pid_array[cursor] = pid_array[cursor + 1];
+						traders[cursor] = traders[cursor + 1];
 					}
 					cursor++;
 				}
+
+				if (valid) {
+					traders = realloc(traders, (cursor + 1) * sizeof(struct trader));
+					traders[cursor] = NULL;
+					// check the validitiy of this pls
+				}
+
 				disconnect_trader = -1;
 
 				if (cursor == 1) {
@@ -483,8 +516,14 @@ int main(int argc, char **argv) {
 						unlink(path);
 						cursor++;
 					}
-					free(exchange_fds);
-					free(trader_fds);
+					cursor = 0;
+					while (traders[cursor] != NULL) {
+						free(traders[cursor]->position_qty);
+						free(traders[cursor]->position_cost);
+						free(traders[cursor]);
+						cursor++;
+					}
+					free(traders);
 					int limit = strtol(products[0], NULL, 10);
 					for (int index = 0; index <= limit; index++) {
 						free(products[index]);
@@ -497,21 +536,23 @@ int main(int argc, char **argv) {
 			// memset(arg_array, 0, sizeof(char*) * 5); // +++ magic number
 			int trader_number = -1;
 			// use select here to monitor pipe +++
-			if (read_flag) {
+			if (read_trader != -1) {
 				printf("%s ", LOG_PREFIX);
-				for (int pipe = 0; pipe < argc - 2; pipe++) {
-					arg_array = take_input(trader_fds[pipe]);
-					if (arg_array != NULL) {
-						trader_number = pipe;
+				int cursor = 0;
+
+				while (traders[cursor] != NULL) {
+					if (traders[cursor]->pid == read_trader) {
+						arg_array = take_input(traders[cursor]->trader_fd);
 						break;
 					}
+					cursor++;
 				}
+
 				for (int cursor = 0; cursor < strlen(arg_array[4]); cursor++) {
 					if (arg_array[4][cursor] == ';' || arg_array[4][cursor] == '\n') {
 						arg_array[4][cursor] = '\0';
 					}
 				}
-				// arg_array[4][strlen(arg_array[4])-1] = '\0';
 				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", trader_number, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
@@ -528,21 +569,21 @@ int main(int argc, char **argv) {
 				}
 
 				// Generating and displaying the orderbook for the exchange
-				generate_orderbook(strtol(products[0], NULL, 10), products, orders);
+				generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
 				char* msg = malloc(MAX_INPUT);
 				sprintf(msg, "ACCEPTED %s", arg_array[1]);
-				write_pipe(exchange_fds[trader_number], msg);
-				kill(pid_array[trader_number], SIGUSR1);
+				write_pipe(traders[cursor]->exchange_fd, msg);
+				kill(traders[cursor]->pid, SIGUSR1);
 
 
-				int cursor = 0;
+				cursor = 0;
 				while (arg_array[cursor] != NULL) {
 					free(arg_array[cursor++]);
 				}
 				free(arg_array);
 				free(msg);
 
-				read_flag = 0;
+				read_trader = -1;
 			}
 
 			if (counter++ == 20) {
