@@ -255,7 +255,7 @@ char** take_input(int fd) {
 	return arg_array;
 }
 
-struct trader* initialise_trader(char* path, int* pid_array, int index, int num_products) {
+struct trader* initialise_trader(char* path, int index, int num_products) {
 
 	struct trader* new_trader = malloc(sizeof(struct trader));
 	new_trader->pid = fork();
@@ -397,7 +397,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 	}
 }
 
-struct trader** check_disconnect(struct trader** traders) {
+struct trader** disconnect(struct trader** traders, struct order** orders, char** products, int argc) {
 	int valid = 0;
 	int cursor = 0;
 
@@ -409,7 +409,7 @@ struct trader** check_disconnect(struct trader** traders) {
 			free(traders[cursor]);
 			valid = 1;
 		}
-		if (valid && pid_array[cursor] != -1) {
+		if (valid) {
 			traders[cursor] = traders[cursor + 1];
 		}
 		cursor++;
@@ -426,7 +426,6 @@ struct trader** check_disconnect(struct trader** traders) {
 	if (cursor == 1) {
 		printf("%s Trading completed\n", LOG_PREFIX);
 		printf("%s Exchange fees collected: $%d\n", LOG_PREFIX, total_fees);
-		free(pid_array);
 		int cursor = 0;
 		while (orders[cursor] != NULL) {
 			free(orders[cursor++]);
@@ -469,12 +468,9 @@ int main(int argc, char **argv) {
 			printf("%s Error: Products file does not exist", LOG_PREFIX);
 			return -1;
 		}
-// +++ defunct
-		// int* trader_fds = malloc(sizeof(int) * (argc - 2));
-		// int* exchange_fds = malloc(sizeof(int) * (argc - 2));
+
 		struct trader** traders = malloc(sizeof(struct trader) * (argc - 1));
 		traders[argc - 2] = NULL;
-		int* pid_array = malloc(sizeof(int) * (argc - 1));
 
 		struct sigaction sig_act;
 
@@ -503,7 +499,7 @@ int main(int argc, char **argv) {
 			}
 
 			// Starts trader processes specified by command line arguments
-			traders[trader-2] = initialise_trader(argv[trader], pid_array, trader-2, strtol(products[0], NULL, 10));
+			traders[trader-2] = initialise_trader(argv[trader], trader-2, strtol(products[0], NULL, 10));
 			if (traders[trader-2] == NULL) {
 				return -1;
 			}
@@ -536,7 +532,7 @@ int main(int argc, char **argv) {
 		while (running) {
 			// Need a list of current traders to update when traders dc+++
 			if (disconnect_trader != -1) {
-				traders = check_disconnect(traders);
+				traders = disconnect(traders, orders, products, argc);
 				if (traders == NULL) {
 					return 0;
 				}
@@ -563,7 +559,7 @@ int main(int argc, char **argv) {
 						arg_array[4][cursor] = '\0';
 					}
 				}
-				
+
 				// Inform the trader that their order was accepted
 				char* msg = malloc(MAX_INPUT);
 				sprintf(msg, "ACCEPTED %s", arg_array[1]);
