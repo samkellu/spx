@@ -560,8 +560,8 @@ int main(int argc, char **argv) {
 
 				// Inform the trader that their order was accepted
 				char* msg = malloc(MAX_INPUT);
-				sprintf(msg, "ACCEPTED %s", arg_array[1]);
-				printf("%d",write_pipe(traders[cursor]->exchange_fd, msg));
+				snprintf(msg, MAX_INPUT, "ACCEPTED %s;", arg_array[1]);
+				write_pipe(traders[cursor]->exchange_fd, msg);
 				kill(traders[cursor]->pid, SIGUSR1);
 
 				printf("%s [T%d] Parsing command: <%s %s %s %s %s>\n", LOG_PREFIX, traders[cursor]->id, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
