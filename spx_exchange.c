@@ -547,11 +547,13 @@ int main(int argc, char **argv) {
 				read_trader = -1;
 				int cursor = 0;
 				while (traders[cursor] != NULL) {
+					printf("wow");
 					if (traders[cursor]->pid == read_trader) {
-
+						printf("wower");
 						arg_array = take_input(traders[cursor]->trader_fd);
 						break;
 					}
+					fflush(stdout);
 					cursor++;
 				}
 
@@ -613,10 +615,10 @@ int main(int argc, char **argv) {
 				if (id_valid && product_valid && amount_valid && price_valid) {
 
 					if (strcmp(arg_array[0], "BUY") == 0) {
-						orders = create_order(BUY, trader_number, order_id, arg_array[2], amount, price, &buy_order, orders);
+						orders = create_order(BUY, traders[cursor]->id, order_id, arg_array[2], amount, price, &buy_order, orders);
 
 					} else if (strcmp(arg_array[0], "SELL") == 0) {
-						orders = create_order(SELL, 12, order_id, arg_array[2], amount, price, &sell_order, orders);
+						orders = create_order(SELL, traders[cursor]->id, order_id, arg_array[2], amount, price, &sell_order, orders);
 
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
 						printf("amend");
