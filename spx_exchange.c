@@ -543,6 +543,8 @@ int main(int argc, char **argv) {
 			int trader_number = -1;
 			// use select here to monitor pipe +++
 			if (read_trader != -1) {
+				
+				read_trader = -1;
 				int cursor = 0;
 				while (traders[cursor] != NULL) {
 					if (traders[cursor]->pid == read_trader) {
