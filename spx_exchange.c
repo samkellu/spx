@@ -11,6 +11,8 @@
 int read_flag = 0;
 int init_flag = 0;
 int disconnect_trader = -1;
+int total_fees = 0;
+
 
 void read_sig(int signo, siginfo_t *si, void *uc) {
 	if (signo == SIGUSR1) {
@@ -395,7 +397,6 @@ int main(int argc, char **argv) {
 
 				if (cursor == 1) {
 					printf("%s Trading completed\n", LOG_PREFIX);
-					int total_fees = 69420;
 					printf("%s Exchange fees collected: $%d\n", LOG_PREFIX, total_fees);
 					free(pid_array);
 					int cursor = 0;
