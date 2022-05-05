@@ -589,7 +589,7 @@ int main(int argc, char **argv) {
 			if (counter++ == 20) {
 				running = 0;
 			}
-			sleep(1); // Check for responsiveness, or add blocking io if necessary +++
+			// sleep(1); // Check for responsiveness, or add blocking io if necessary +++
 		}
 	} else {
 
