@@ -568,12 +568,14 @@ int main(int argc, char **argv) {
 					printf("del");
 				}
 
-				// Generating and displaying the orderbook for the exchange
-				generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
+				// Inform the trader that their order was accepted
 				char* msg = malloc(MAX_INPUT);
 				sprintf(msg, "ACCEPTED %s", arg_array[1]);
 				write_pipe(traders[cursor]->exchange_fd, msg);
 				kill(traders[cursor]->pid, SIGUSR1);
+				
+				// Generating and displaying the orderbook for the exchange
+				generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
 
 
 				cursor = 0;
