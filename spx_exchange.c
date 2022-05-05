@@ -558,10 +558,19 @@ int main(int argc, char **argv) {
 				printf("%s [T%d] Parsing command: <",LOG_PREFIX, traders[cursor]->id);
 				while (arg_array[arg_cursor] != NULL) {
 
+					if (arg_array[arg_cursor + 1] == NULL) {
+						for (int cursor = 0; cursor < strlen(arg_array[arg_cursor]); cursor++) {
+							if (arg_array[arg_cursor][cursor] == ';' || arg_array[arg_cursor][cursor] == '\n') {
+								arg_array[arg_cursor][cursor] = '\0';
+							}
+						}
+					}
+
 					printf("%s", arg_array[arg_cursor]);
 
+
 					if (arg_array[arg_cursor + 1] != NULL) {
-						printf(", ");
+						printf(" ");
 					}
 					arg_cursor++;
 				}
@@ -579,11 +588,6 @@ int main(int argc, char **argv) {
 					continue;
 				}
 
-				for (int cursor = 0; cursor < strlen(arg_array[4]); cursor++) {
-					if (arg_array[4][cursor] == ';' || arg_array[4][cursor] == '\n') {
-						arg_array[4][cursor] = '\0';
-					}
-				}
 
 				int amount = strtol(arg_array[3], NULL, 10);
 				int price = strtol(arg_array[4], NULL, 10);
