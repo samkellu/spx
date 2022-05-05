@@ -345,7 +345,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 		while (sort_cursor < num_levels) {
 
 			int max = 0;
-			int max_index = -1;
+			int max_index;
 			for (int level = 0; level < num_levels; level++) {
 				if (levels[level].price > max) {
 					max_index = level;
