@@ -562,8 +562,8 @@ int main(int argc, char **argv) {
 				int order_id = strtol(arg_array[1], NULL, 10);
 
 				int product_valid = 0;
-				int amount_valid = (amount >= 0); // +++ check minimum val
-				int price_valid = (price >= 0);
+				int amount_valid = (amount > 0 && amount < 1000000);
+				int price_valid = (price > 0 && price < 1000000);
 				for (int product = 1; product < strtol(products[0], NULL, 10); product++) {
 					if (strcmp(products[product], arg_array[2]) == 0) {
 						product_valid = 1;
