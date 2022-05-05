@@ -538,7 +538,6 @@ int main(int argc, char **argv) {
 			}
 
 			char** arg_array;
-			// memset(arg_array, 0, sizeof(char*) * 5); // +++ magic number
 			int trader_number = -1;
 			// use select here to monitor pipe +++
 			if (read_trader != -1) {
@@ -560,7 +559,7 @@ int main(int argc, char **argv) {
 
 				// Inform the trader that their order was accepted
 				char* msg = malloc(MAX_INPUT);
-				snprintf(msg, MAX_INPUT, "ACCEPTED %s;", arg_array[1]);
+				sprintf(msg, "ACCEPTED %s;", arg_array[1]);
 				write_pipe(traders[cursor]->exchange_fd, msg);
 				kill(traders[cursor]->pid, SIGUSR1);
 
