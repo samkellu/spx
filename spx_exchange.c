@@ -296,11 +296,11 @@ int create_fifo(char* path) {
 
 struct level* orderbook_helper(struct order* current_order, int* num_levels, int* num_type, struct level* levels) {
 
-	int valid = 1;
+	int valid = 0;
 
 	for (int level_cursor = 0; level_cursor < *num_levels; level_cursor++) {
 		if (current_order->price == levels[level_cursor].price && current_order->type == levels[level_cursor].type) {
-			valid = 0;
+			valid = 1;
 			levels[level_cursor].num++;
 			levels[level_cursor].qty += current_order->qty;
 			break;
@@ -561,6 +561,7 @@ int main(int argc, char **argv) {
 
 				int arg_cursor = 0;
 				while (arg_array[arg_cursor] != NULL) {
+
 					if (arg_array[arg_cursor + 1] == NULL) {
 						for (int cursor = 0; cursor < strlen(arg_array[arg_cursor]); cursor++) {
 							if (arg_array[arg_cursor][cursor] == ';' || arg_array[arg_cursor][cursor] == '\n') {
@@ -666,13 +667,7 @@ int main(int argc, char **argv) {
 
 				free(arg_array);
 			}
-
-			// if (counter++ == 1000) {
-			// 	running = 0;
-			// }
-			// sleep(1); // Check for responsiveness, or add blocking io if necessary +++
 		}
-
 	} else {
 
 		printf("Not enough arguments"); //+++ check  messaging and arg lengths

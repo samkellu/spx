@@ -56,12 +56,4 @@ int main(int argc, char ** argv) {
       }
     }
     return 0;
-
-
-    // event loop:
-
-    // wait for exchange update (MARKET message)
-    // send order
-    // wait for exchange confirmation (ACCEPTED message)
-
 }
