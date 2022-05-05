@@ -245,19 +245,12 @@ char** take_input(int fd) {
 		char* arg = malloc(PRODUCT_LENGTH);
 		memcpy(arg, token, PRODUCT_LENGTH);
 		arg_array[args_length - 1] = arg;
-		// Null terminated array of products
+		// Null terminated array of args
 		arg_array[args_length] = (char*)NULL;
 
 		// Traverse to next token
 		token = strtok(NULL, " ");
 		args_length++;
-	}
-	if (args_length != 6) {
-		for (int cursor = 0; cursor < args_length; cursor++) {
-			free(arg_array[cursor]);
-		}
-		free(arg_array);
-		return NULL; // +++
 	}
 	return arg_array;
 }
@@ -551,27 +544,38 @@ int main(int argc, char **argv) {
 			// use select here to monitor pipe +++
 			if (read_trader != -1) {
 				int cursor = 0;
-				int args_valid = 1;
 				while (traders[cursor] != NULL) {
 					if (traders[cursor]->pid == read_trader) {
 
 						arg_array = take_input(traders[cursor]->trader_fd);
-						if (arg_array == NULL) {
-
-							// Inform the trader that their order was invalid
-							char* msg = malloc(MAX_INPUT);
-							sprintf(msg, "INVALID;");
-							write_pipe(traders[cursor]->exchange_fd, msg);
-							kill(traders[cursor]->pid, SIGUSR1);
-							free(msg);
-							args_valid = 0;
-						}
 						break;
 					}
 					cursor++;
 				}
 
-				if (!args_valid) {
+				int arg_cursor = 0;
+
+				printf("%s [T%d] Parsing command: <",LOG_PREFIX, traders[cursor]->id);
+				while (arg_array[arg_cursor] != NULL) {
+
+					printf("%s", arg_array[arg_cursor]);
+
+					if (arg_array[arg_cursor + 1] != NULL) {
+						printf(", ");
+					}
+					arg_cursor++;
+				}
+
+				printf(">\n");
+
+				if (arg_cursor != 5) {
+
+					arg_cursor = 0;
+					while (arg_array[arg_cursor] != NULL) {
+						free(arg_array[arg_cursor++]);
+					}
+
+					free(arg_array);
 					continue;
 				}
 
@@ -581,7 +585,6 @@ int main(int argc, char **argv) {
 					}
 				}
 
-				printf("%s [T%d] Parsing command: <%s %s %s %s %s>\n", LOG_PREFIX, traders[cursor]->id, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 				int amount = strtol(arg_array[3], NULL, 10);
 				int price = strtol(arg_array[4], NULL, 10);
 				int order_id = strtol(arg_array[1], NULL, 10);
