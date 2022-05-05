@@ -139,7 +139,7 @@ char** read_products_file(char* fp) {
 
 char** take_input(int fd) {
 	char input[MAX_INPUT], *token;
-	int result = read(fd, input, MAX_INPUT); // will be a pipe +++
+	int result = read(fd, input, MAX_INPUT);
 	if (result == -1) {
 		return (char**)NULL;
 	}
@@ -163,6 +163,7 @@ char** take_input(int fd) {
 		char* arg = malloc(PRODUCT_LENGTH);
 		memcpy(arg, token, PRODUCT_LENGTH);
 		arg_array[args_length - 1] = arg;
+		// Null terminated array of products
 		arg_array[args_length] = (char*)NULL;
 
 		// Traverse to next token
@@ -206,7 +207,6 @@ int initialise_trader(char* path, int* pid_array, int index) {
 }
 
 int create_fifo(char* path) {
-	// +++ CHECK if there can be multiple exchanges???
 	unlink(path);//+++
 
 	if (mkfifo(path, 0666) == -1) {//+++ check perms
@@ -252,7 +252,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 		int num_buy_levels = 0;
 
 		struct level* levels = malloc(0);
-		// int num_orders = 0;
+		// int num_orders = 0; +++
 		int cursor = 0;
 		while (orders[cursor] != NULL) {
 			if (strcmp(orders[cursor]->product, products[product]) == 0) {
@@ -421,7 +421,6 @@ int main(int argc, char **argv) {
 						free(products[index]);
 					}
 					free(products);
-					printf("lmao bye\n");
 					return 0;
 				}
 			}
@@ -438,7 +437,12 @@ int main(int argc, char **argv) {
 						break;
 					}
 				}
-				arg_array[4][strlen(arg_array[4])-1] = '\0';
+				for (int cursor = 0; cursor < strlen(arg_array[4]); cursor++) {
+					if (arg_array[4][cursor] == ';' || arg_array[4][cursor] == '\n') {
+						arg_array[4][cursor] = '\0';
+					}
+				}
+				// arg_array[4][strlen(arg_array[4])-1] = '\0';
 				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", trader_number, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
