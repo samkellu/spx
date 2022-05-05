@@ -582,17 +582,18 @@ int main(int argc, char **argv) {
 					}
 					sprintf(msg, "ACCEPTED %s;", arg_array[1]);
 
-				// Generating and displaying the orderbook for the exchange
-				generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
+					// Generating and displaying the orderbook for the exchange
+					generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
 
-			} else {
-				msg = "INVALID;";
-			}
+				} else {
+					sprintf(msg, "INVALID;");
 
-			// Inform the trader that their order was accepted
-			write_pipe(traders[cursor]->exchange_fd, msg);
-			free(msg);
-			kill(traders[cursor]->pid, SIGUSR1);
+				}
+
+				// Inform the trader that their order was accepted
+				write_pipe(traders[cursor]->exchange_fd, msg);
+				free(msg);
+				kill(traders[cursor]->pid, SIGUSR1);
 
 				cursor = 0;
 				while (arg_array[cursor] != NULL) {
@@ -608,6 +609,7 @@ int main(int argc, char **argv) {
 			// }
 			// sleep(1); // Check for responsiveness, or add blocking io if necessary +++
 		}
+
 	} else {
 
 		printf("Not enough arguments"); //+++ check  messaging and arg lengths
