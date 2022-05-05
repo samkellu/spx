@@ -262,6 +262,7 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 	new_trader->id = index;
 	new_trader->position_qty = calloc(sizeof(int), sizeof(int) * num_products);
 	new_trader->position_cost = calloc(sizeof(int), sizeof(int) * num_products);
+	new_trader->current_order_id = 0;
 	if (new_trader->pid == -1) {
 		printf("%s Fork failed\n", LOG_PREFIX);
 		return NULL;
@@ -561,6 +562,7 @@ int main(int argc, char **argv) {
 				int price = strtol(arg_array[4], NULL, 10);
 				int order_id = strtol(arg_array[1], NULL, 10);
 
+				int id_valid = (order_id == traders[cursor]->current_order_id);
 				int product_valid = 0;
 				int amount_valid = (amount > 0 && amount < 1000000);
 				int price_valid = (price > 0 && price < 1000000);
@@ -573,7 +575,7 @@ int main(int argc, char **argv) {
 				}
 
 				char* msg = malloc(MAX_INPUT);
-				if (product_valid && amount_valid && price_valid) {
+				if (id_valid && product_valid && amount_valid && price_valid) {
 
 					if (strcmp(arg_array[0], "BUY") == 0) {
 						orders = create_order(BUY, trader_number, order_id, arg_array[2], amount, price, &buy_order, orders);
@@ -588,6 +590,7 @@ int main(int argc, char **argv) {
 						printf("del");
 					}
 					sprintf(msg, "ACCEPTED %s;", arg_array[1]);
+					traders[cursor]->current_order_id++;
 
 					// Generating and displaying the orderbook for the exchange
 					generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);

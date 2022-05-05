@@ -25,6 +25,7 @@ struct order {
 
 struct trader {
   int id;
+  int current_order_id;
   pid_t pid;
   int exchange_fd;
   int trader_fd;
