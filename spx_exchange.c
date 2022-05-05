@@ -79,6 +79,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
 			int price_valid = (orders[current_order]->price <= new_order->price); // +++ check for equality in the spec
 			int trader_valid = (orders[current_order]->trader_id != new_order->trader_id);
+
 			if (trader_valid && product_valid && price_valid && orders[current_order]->type == SELL) {
 				if (cheapest_sell == NULL || orders[current_order]->price < cheapest_sell->price) {
 					cheapest_sell = orders[current_order];
@@ -86,6 +87,10 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 				}
 			}
 			current_order++;
+		}
+
+		if (cheapest_sell == NULL) {
+			break;
 		}
 
 		int qty = 0;
@@ -117,21 +122,18 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			write_pipe(fd, msg);
 		}
 
-		if (cheapest_sell == NULL || new_order->qty == 0) {
-			matching = 0;
+		if (new_order->qty == 0) {
+			int cursor = 0;
+
+			while (orders[cursor] != NULL) {
+				cursor++;
+			}
+
+			orders = realloc(orders, sizeof(struct order) * cursor);
+			orders[cursor - 2] = new_order;
+			orders[cursor - 1] = NULL;
+			break;
 		}
-	}
-
-	if (new_order->qty != 0) {
-		int cursor = 0;
-
-		while (orders[cursor] != NULL) {
-			cursor++;
-		}
-
-		orders = realloc(orders, sizeof(struct order) * cursor);
-		orders[cursor - 2] = new_order;
-		orders[cursor - 1] = NULL;
 	}
 	return orders;
 }
