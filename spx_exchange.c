@@ -556,8 +556,6 @@ int main(int argc, char **argv) {
 				}
 
 				if (traders[cursor] == NULL) {
-					printf("yoikes");
-					fflush(stdout);
 					continue;
 				}
 
