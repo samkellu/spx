@@ -29,6 +29,17 @@ void read_sig(int signo, siginfo_t *si, void *uc) {
 	}
 }
 
+int write_pipe(int fd, char* message) {
+	if (strlen(message) < MAX_INPUT) {
+		if (fd == -1) {
+			return -1;
+		}
+		write(fd, message, strlen(message) + 1);
+		return 1;
+	}
+	return -1;
+}
+
 struct order** delete_order(struct order** orders, int index) {
 	int cursor = index;
 	while (orders[cursor + 1] != NULL) {
@@ -54,13 +65,78 @@ struct order** create_order(int type, int trader_id, int order_id, char product[
 
 	return orders;
 }
-//
-// struct order* buy_order(int order_id, char product[PRODUCT_LENGTH], int qty, int price) {
-// 	// struct order checking for sells??
-// 	struct order* new_order = create_order(BUY, order_id, product, qty, price, &buy_order);
-// 	return new_order;
-// }
-//
+
+struct order** buy_order(struct order* new_order, struct order** orders) {
+	int matching = 1;
+
+	while (matching) {
+		struct order* cheapest_sell = NULL;
+		int cheapest_index = 0;
+		int current_order = 0; // orders is null terminated, so 0 always exists
+
+		while (orders[current_order] != NULL) {
+			// Booleans to check if the current order is compatible with the new order
+			int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
+			int price_valid = (orders[current_order]->price <= new_order->price); // +++ check for equality in the spec
+			int trader_valid = (orders[current_order]->trader_id != new_order->trader_id);
+			if (trader_valid && product_valid && price_valid && orders[current_order]->type == SELL) {
+				if (cheapest_sell == NULL || orders[current_order]->price < cheapest_sell->price) {
+					cheapest_sell = orders[current_order];
+					cheapest_index = current_order;
+				}
+			}
+			current_order++;
+		}
+
+		int qty = 0;
+		if (cheapest_sell->qty <= new_order->qty) {
+			qty = cheapest_sell->qty;
+			new_order->qty -= cheapest_sell->qty;
+		} else {
+			cheapest_sell->qty -= new_order->qty;
+			qty = new_order->qty;
+		}
+
+		int cost = qty * cheapest_sell->price;
+		int fee = (int)round(0.01 * cost);
+		total_fees += fee;
+
+		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.", LOG_PREFIX, orders[current_order]->order_id,\
+		orders[current_order]->trader_id, new_order->order_id, new_order->trader_id, cost,\
+		fee);
+
+		if (cheapest_sell->qty == 0) {
+			char path[PATH_LENGTH];
+			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, cheapest_sell->order_id);
+			int fd = open(path, O_WRONLY);
+
+			char msg[MAX_INPUT];
+			snprintf(msg, MAX_INPUT, "FILL %d %d", cheapest_sell->order_id, cheapest_sell->qty);
+			orders = delete_order(orders, cheapest_index);
+
+			write_pipe(fd, msg);
+		}
+
+		if (cheapest_sell == NULL || new_order->qty == 0) {
+			matching = 0;
+		}
+	}
+
+	if (new_order->qty != 0) {
+		int cursor = 0;
+
+		while (orders[cursor] != NULL) {
+			cursor++;
+		}
+
+		orders = realloc(orders, sizeof(struct order) * cursor);
+		orders[cursor - 2] = new_order;
+		orders[cursor - 1] = NULL;
+	}
+	return orders;
+}
+
+// Manages the matching process the sell orders when they are received
 struct order** sell_order(struct order* new_order, struct order** orders) {
 
 	int current_order = 0; // orders is null terminated, so 0 always exists
@@ -173,16 +249,6 @@ char** take_input(int fd) {
 	return arg_array;
 }
 
-int write_pipe(int fd, char* message) {
-	if (strlen(message) < MAX_INPUT) {
-		if (fd == -1) {
-			return -1;
-		}
-		write(fd, message, strlen(message) + 1);
-		return 1;
-	}
-	return -1;
-}
 
 int initialise_trader(char* path, int* pid_array, int index) {
 	pid_array[index] = fork();
@@ -352,8 +418,8 @@ int main(int argc, char **argv) {
 			if (initialise_trader(argv[trader], pid_array, trader-2) == -1) {
 				return -1;
 			}
-			// Connects to each named pipe
 
+			// Connects to each named pipe
 			exchange_fds[trader - 2] = open(exchange_path, O_WRONLY);
 			printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
 
@@ -365,7 +431,6 @@ int main(int argc, char **argv) {
 			write_pipe(exchange_fds[index], "MARKET OPEN;");
 		}
 
-		// signal(SIGUSR1, read_sig);
 		for (int index = 0; index < argc - 2; index++) {
 			kill(pid_array[index], SIGUSR1);
 		}
@@ -378,7 +443,7 @@ int main(int argc, char **argv) {
 		int running = 1;
 		int counter = 0;
 		while (running) {
-
+			// Need a list of current traders to update when traders dc+++
 			if (disconnect_trader != -1) {
 				int valid = 0;
 				int cursor = 0;
@@ -446,8 +511,7 @@ int main(int argc, char **argv) {
 				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", trader_number, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
-					printf("buy");
-					// create_order(BUY, int order_id, char product[PRODUCT_LENGTH], int qty, int price, &buy_order)
+					orders = create_order(BUY, trader_number, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &buy_order, orders);
 
 				} else if (strcmp(arg_array[0], "SELL") == 0) {
 					orders = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
@@ -475,13 +539,11 @@ int main(int argc, char **argv) {
 				read_flag = 0;
 			}
 
-
 			if (counter++ == 20) {
 				running = 0;
 			}
 			sleep(1); // Check for responsiveness, or add blocking io if necessary +++
 		}
-		// Free all mem
 	} else {
 
 		printf("Not enough arguments"); //+++ check  messaging and arg lengths
