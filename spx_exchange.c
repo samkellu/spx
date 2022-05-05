@@ -557,12 +557,6 @@ int main(int argc, char **argv) {
 					}
 				}
 
-				// Inform the trader that their order was accepted
-				char* msg = malloc(MAX_INPUT);
-				sprintf(msg, "ACCEPTED %s;", arg_array[1]);
-				write_pipe(traders[cursor]->exchange_fd, msg);
-				kill(traders[cursor]->pid, SIGUSR1);
-
 				printf("%s [T%d] Parsing command: <%s %s %s %s %s>\n", LOG_PREFIX, traders[cursor]->id, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
@@ -578,6 +572,12 @@ int main(int argc, char **argv) {
 					printf("del");
 				}
 
+				// Inform the trader that their order was accepted
+				char* msg = malloc(MAX_INPUT);
+				sprintf(msg, "ACCEPTED %ld;", strtol(arg_array[1], NULL, 10));
+				write_pipe(traders[cursor]->exchange_fd, msg);
+				free(msg);
+				kill(traders[cursor]->pid, SIGUSR1);
 
 				// Generating and displaying the orderbook for the exchange
 				generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
@@ -588,7 +588,6 @@ int main(int argc, char **argv) {
 					free(arg_array[cursor++]);
 				}
 				free(arg_array);
-				free(msg);
 
 				read_trader = -1;
 			}
