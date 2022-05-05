@@ -587,6 +587,14 @@ int main(int argc, char **argv) {
 					}
 
 					free(arg_array);
+
+					char* msg = malloc(MAX_INPUT);
+					sprintf(msg, "INVALID;");
+
+					// Inform the trader that their order was accepted
+					write_pipe(traders[cursor]->exchange_fd, msg);
+					kill(traders[cursor]->pid, SIGUSR1);
+					free(msg);
 					continue;
 				}
 
