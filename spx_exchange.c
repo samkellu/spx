@@ -423,9 +423,9 @@ struct trader** disconnect(struct trader** traders, struct order** orders, char*
 	}
 
 	if (valid) {
-		printf("%d", cursor);
-		fflush(stdout);
-		traders = realloc(traders, (cursor + 1) * sizeof(struct trader));
+		// printf("%d", cursor);
+		// fflush(stdout);
+		traders = realloc(traders, cursor * sizeof(struct trader));
 		traders[cursor] = NULL;
 		// check the validitiy of this pls
 	}
