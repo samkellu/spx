@@ -397,6 +397,69 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 	}
 }
 
+struct trader** check_disconnect(struct trader** traders) {
+	int valid = 0;
+	int cursor = 0;
+
+	while (traders[cursor] != NULL) {
+		if (disconnect_trader == traders[cursor]->pid) {
+			printf("%s Trader %d disconnected\n", LOG_PREFIX, traders[cursor]->id);
+			free(traders[cursor]->position_qty);
+			free(traders[cursor]->position_cost);
+			free(traders[cursor]);
+			valid = 1;
+		}
+		if (valid && pid_array[cursor] != -1) {
+			traders[cursor] = traders[cursor + 1];
+		}
+		cursor++;
+	}
+
+	if (valid) {
+		traders = realloc(traders, (cursor + 1) * sizeof(struct trader));
+		traders[cursor] = NULL;
+		// check the validitiy of this pls
+	}
+
+	disconnect_trader = -1;
+
+	if (cursor == 1) {
+		printf("%s Trading completed\n", LOG_PREFIX);
+		printf("%s Exchange fees collected: $%d\n", LOG_PREFIX, total_fees);
+		free(pid_array);
+		int cursor = 0;
+		while (orders[cursor] != NULL) {
+			free(orders[cursor++]);
+		}
+		free(orders);
+		cursor = 0;
+		while (cursor < argc - 2) {
+			char path[PATH_LENGTH];
+			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, cursor);
+			unlink(path);
+			snprintf(path, PATH_LENGTH, TRADER_PATH, cursor);
+			unlink(path);
+			cursor++;
+		}
+		cursor = 0;
+		while (traders[cursor] != NULL) {
+			free(traders[cursor]->position_qty);
+			free(traders[cursor]->position_cost);
+			free(traders[cursor]);
+			cursor++;
+		}
+		free(traders);
+		int limit = strtol(products[0], NULL, 10);
+		for (int index = 0; index <= limit; index++) {
+			free(products[index]);
+		}
+		free(products);
+		return NULL;
+	}
+	return traders;
+}
+
+
 int main(int argc, char **argv) {
 	if (argc > 1) {
 		printf("%s Starting\n", LOG_PREFIX);
@@ -473,65 +536,12 @@ int main(int argc, char **argv) {
 		while (running) {
 			// Need a list of current traders to update when traders dc+++
 			if (disconnect_trader != -1) {
-				int valid = 0;
-				int cursor = 0;
-
-				while (traders[cursor] != NULL) {
-					if (disconnect_trader == traders[cursor]->pid) {
-						printf("%s Trader %d disconnected\n", LOG_PREFIX, traders[cursor]->id);
-						free(traders[cursor]->position_qty);
-						free(traders[cursor]->position_cost);
-						free(traders[cursor]);
-						valid = 1;
-					}
-					if (valid && pid_array[cursor] != -1) {
-						traders[cursor] = traders[cursor + 1];
-					}
-					cursor++;
-				}
-
-				if (valid) {
-					traders = realloc(traders, (cursor + 1) * sizeof(struct trader));
-					traders[cursor] = NULL;
-					// check the validitiy of this pls
-				}
-
-				disconnect_trader = -1;
-
-				if (cursor == 1) {
-					printf("%s Trading completed\n", LOG_PREFIX);
-					printf("%s Exchange fees collected: $%d\n", LOG_PREFIX, total_fees);
-					free(pid_array);
-					int cursor = 0;
-					while (orders[cursor] != NULL) {
-						free(orders[cursor++]);
-					}
-					free(orders);
-					cursor = 0;
-					while (cursor < argc - 2) {
-						char path[PATH_LENGTH];
-						snprintf(path, PATH_LENGTH, EXCHANGE_PATH, cursor);
-						unlink(path);
-						snprintf(path, PATH_LENGTH, TRADER_PATH, cursor);
-						unlink(path);
-						cursor++;
-					}
-					cursor = 0;
-					while (traders[cursor] != NULL) {
-						free(traders[cursor]->position_qty);
-						free(traders[cursor]->position_cost);
-						free(traders[cursor]);
-						cursor++;
-					}
-					free(traders);
-					int limit = strtol(products[0], NULL, 10);
-					for (int index = 0; index <= limit; index++) {
-						free(products[index]);
-					}
-					free(products);
+				traders = check_disconnect(traders);
+				if (traders == NULL) {
 					return 0;
 				}
 			}
+
 			char** arg_array;
 			// memset(arg_array, 0, sizeof(char*) * 5); // +++ magic number
 			int trader_number = -1;
@@ -553,6 +563,13 @@ int main(int argc, char **argv) {
 						arg_array[4][cursor] = '\0';
 					}
 				}
+				
+				// Inform the trader that their order was accepted
+				char* msg = malloc(MAX_INPUT);
+				sprintf(msg, "ACCEPTED %s", arg_array[1]);
+				write_pipe(traders[cursor]->exchange_fd, msg);
+				kill(traders[cursor]->pid, SIGUSR1);
+
 				printf("[T%d] Parsing command: <%s %s %s %s %s>\n", traders[cursor]->id, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
 
 				if (strcmp(arg_array[0], "BUY") == 0) {
@@ -568,12 +585,7 @@ int main(int argc, char **argv) {
 					printf("del");
 				}
 
-				// Inform the trader that their order was accepted
-				char* msg = malloc(MAX_INPUT);
-				sprintf(msg, "ACCEPTED %s", arg_array[1]);
-				write_pipe(traders[cursor]->exchange_fd, msg);
-				kill(traders[cursor]->pid, SIGUSR1);
-				
+
 				// Generating and displaying the orderbook for the exchange
 				generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
 
