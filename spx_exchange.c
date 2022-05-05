@@ -129,9 +129,9 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 				cursor++;
 			}
 
-			orders = realloc(orders, sizeof(struct order) * cursor);
-			orders[cursor - 2] = new_order;
-			orders[cursor - 1] = NULL;
+			orders = realloc(orders, sizeof(struct order) * (cursor + 2));
+			orders[cursor] = new_order;
+			orders[cursor + 1] = NULL;
 			break;
 		}
 	}
