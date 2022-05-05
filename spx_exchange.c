@@ -340,7 +340,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 			}
 			cursor++;
 		}
-		printf("%s    Product: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
+		printf("%s\t\tProduct: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
 		int sort_cursor = 0;
 		while (sort_cursor < num_levels) {
 
@@ -367,7 +367,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 				order_str = "order";
 			}
 
-			printf("%s        %s %d @ $%d (%d %s)\n", LOG_PREFIX, type_str, levels[max_index].qty, levels[max_index].price, \
+			printf("%s\t\t\t%s %d @ $%d (%d %s)\n", LOG_PREFIX, type_str, levels[max_index].qty, levels[max_index].price, \
 						levels[max_index].num, order_str);
 
 			levels[sort_cursor] = levels[max_index];
@@ -469,7 +469,7 @@ int main(int argc, char **argv) {
 		orders[0] = NULL;
 
 		int running = 1;
-		int counter = 0;
+		// int counter = 0;
 		while (running) {
 			// Need a list of current traders to update when traders dc+++
 			if (disconnect_trader != -1) {
@@ -586,9 +586,9 @@ int main(int argc, char **argv) {
 				read_trader = -1;
 			}
 
-			if (counter++ == 20) {
-				running = 0;
-			}
+			// if (counter++ == 1000) {
+			// 	running = 0;
+			// }
 			// sleep(1); // Check for responsiveness, or add blocking io if necessary +++
 		}
 	} else {
