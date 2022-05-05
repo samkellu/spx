@@ -37,7 +37,7 @@ int main(int argc, char ** argv) {
       }
 
       if (market_open && !flag) {
-        write(trader_fd, "BUY 0 GPU 1 12;", strlen("BUY 0 GPU 1 12;") + 1);
+        write(trader_fd, "BUY;", strlen("BUY;") + 1);
         kill(ppid, SIGUSR1);
         flag = 1;
       }
