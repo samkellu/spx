@@ -557,22 +557,27 @@ int main(int argc, char **argv) {
 				}
 
 				printf("%s [T%d] Parsing command: <%s %s %s %s %s>\n", LOG_PREFIX, traders[cursor]->id, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
-				int valid = 0;
+				int amount = strtol(arg_array[3], NULL, 10);
+				int price = strtol(arg_array[4], NULL, 10);
+				int order_id = strtol(arg_array[1], NULL, 10);
+
+				int product_valid = 0;
+				int amount_valid = (amount >= 0); // +++ check minimum val
+				int price_valid = (price >= 0);
 				for (int product = 1; product < strtol(products[0], NULL, 10); product++) {
 					if (strcmp(products[product], arg_array[2]) == 0) {
-						valid = 1;
-						break;
+						product_valid = 1;
 					}
 				}
 
 				char* msg = malloc(MAX_INPUT);
-				if (valid) {
+				if (product_valid && amount_valid && price_valid) {
 
 					if (strcmp(arg_array[0], "BUY") == 0) {
-						orders = create_order(BUY, trader_number, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &buy_order, orders);
+						orders = create_order(BUY, trader_number, order_id, arg_array[2], amount, price, &buy_order, orders);
 
 					} else if (strcmp(arg_array[0], "SELL") == 0) {
-						orders = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
+						orders = create_order(SELL, 12, order_id, arg_array[2], amount, price, &sell_order, orders);
 
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
 						printf("amend");
@@ -592,8 +597,18 @@ int main(int argc, char **argv) {
 
 				// Inform the trader that their order was accepted
 				write_pipe(traders[cursor]->exchange_fd, msg);
-				free(msg);
 				kill(traders[cursor]->pid, SIGUSR1);
+
+				int index = 0;
+				sprintf(msg, "MARKET %s %s %d %d;", arg_array[0], arg_array[2], amount, price);
+
+				while (traders[index] != NULL) {
+					if (index != cursor) {
+						write_pipe(traders[index]->exchange_fd, msg);
+						kill(traders[index]->pid, SIGUSR1);
+					}
+				}
+				free(msg);
 
 				cursor = 0;
 				while (arg_array[cursor] != NULL) {
