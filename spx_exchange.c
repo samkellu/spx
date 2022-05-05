@@ -539,11 +539,11 @@ int main(int argc, char **argv) {
 				}
 			}
 
-			char** arg_array;
+			char** arg_array = NULL;
 			int trader_number = -1;
 			// use select here to monitor pipe +++
 			if (read_trader != -1) {
-				
+
 				read_trader = -1;
 				int cursor = 0;
 				while (traders[cursor] != NULL) {
@@ -555,9 +555,13 @@ int main(int argc, char **argv) {
 					cursor++;
 				}
 
-				int arg_cursor = 0;
+				if (arg_array == NULL) {
+					continue;
+				}
 
 				printf("%s [T%d] Parsing command: <", LOG_PREFIX, traders[cursor]->id);
+
+				int arg_cursor = 0;
 				while (arg_array[arg_cursor] != NULL) {
 
 						for (int cursor = 0; cursor < strlen(arg_array[arg_cursor]); cursor++) {
@@ -652,9 +656,8 @@ int main(int argc, char **argv) {
 				while (arg_array[cursor] != NULL) {
 					free(arg_array[cursor++]);
 				}
-				free(arg_array);
 
-				read_trader = -1;
+				free(arg_array);
 			}
 
 			// if (counter++ == 1000) {
