@@ -122,9 +122,9 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			write_pipe(fd, msg);
 		}
 
-		if (new_order->qty == 0) {
-			int cursor = 0;
+		if (new_order->qty != 0) {
 
+			int cursor = 0;
 			while (orders[cursor] != NULL) {
 				cursor++;
 			}
@@ -335,7 +335,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 			}
 			cursor++;
 		}
-		printf("%s		Product: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
+		printf("%s    Product: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
 		int sort_cursor = 0;
 		while (sort_cursor < num_levels) {
 
