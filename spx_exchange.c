@@ -561,12 +561,14 @@ int main(int argc, char **argv) {
 
 				int arg_cursor = 0;
 				while (arg_array[arg_cursor] != NULL) {
-
+					if (arg_array[arg_cursor + 1] == NULL) {
 						for (int cursor = 0; cursor < strlen(arg_array[arg_cursor]); cursor++) {
 							if (arg_array[arg_cursor][cursor] == ';' || arg_array[arg_cursor][cursor] == '\n') {
 								arg_array[arg_cursor][cursor] = '\0';
+								break;
 							}
 						}
+					}
 
 					printf("%s", arg_array[arg_cursor]);
 
@@ -580,8 +582,8 @@ int main(int argc, char **argv) {
 				printf(">\n");
 
 				if (arg_cursor != 5) {
-
 					arg_cursor = 0;
+
 					while (arg_array[arg_cursor] != NULL) {
 						free(arg_array[arg_cursor++]);
 					}
