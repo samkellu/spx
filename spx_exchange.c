@@ -299,10 +299,9 @@ struct level* orderbook_helper(struct order* current_order, int* num_levels, int
 	int valid = 1;
 
 	for (int level_cursor = 0; level_cursor < *num_levels; level_cursor++) {
-		if (current_order->price == levels[level_cursor].price && current_order->type == levels[level_cursor].type) {
+		if (current_order->price == levels[level_cursor].price && current_order->type == levels[level_cursor].type && current_order->qty == levels[level_cursor].qty) {
 			valid = 0;
 			levels[level_cursor].num++;
-			levels[level_cursor].qty += current_order->qty;
 			break;
 		}
 	}
@@ -572,7 +571,6 @@ int main(int argc, char **argv) {
 					}
 
 					printf("%s", arg_array[arg_cursor]);
-
 
 					if (arg_array[arg_cursor + 1] != NULL) {
 						printf(" ");
