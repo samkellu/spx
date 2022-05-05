@@ -565,7 +565,7 @@ int main(int argc, char **argv) {
 				int amount_valid = (amount > 0 && amount < 1000000);
 				int price_valid = (price > 0 && price < 1000000);
 
-				for (int product = 1; product < strtol(products[0], NULL, 10); product++) {
+				for (int product = 1; product <= strtol(products[0], NULL, 10); product++) {
 					printf("%s %s\n", products[product], arg_array[2]);
 					if (strcmp(products[product], arg_array[2]) == 0) {
 						printf("yuh");
