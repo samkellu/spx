@@ -322,7 +322,6 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 	fflush(stdout);
 
 	for (int product = 1; product <= num_products; product++) {
-		// struct order** current_orders = malloc(0);
 		int num_levels = 0;
 		int num_sell_levels = 0;
 		int num_buy_levels = 0;
@@ -558,30 +557,42 @@ int main(int argc, char **argv) {
 				}
 
 				printf("%s [T%d] Parsing command: <%s %s %s %s %s>\n", LOG_PREFIX, traders[cursor]->id, arg_array[0], arg_array[1], arg_array[2], arg_array[3], arg_array[4]);
-
-				if (strcmp(arg_array[0], "BUY") == 0) {
-					orders = create_order(BUY, trader_number, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &buy_order, orders);
-
-				} else if (strcmp(arg_array[0], "SELL") == 0) {
-					orders = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
-
-				} else if (strcmp(arg_array[0], "AMEND") == 0) {
-					printf("amend");
-
-				} else if (strcmp(arg_array[0], "DEL") == 0) {
-					printf("del");
+				int valid = 0;
+				for (int product = 1; product < strtol(products[0], NULL, 10); product++) {
+					if (strcmp(products[product], arg_array[2]) == 0) {
+						valid = 1;
+						break;
+					}
 				}
 
-				// Inform the trader that their order was accepted
 				char* msg = malloc(MAX_INPUT);
-				sprintf(msg, "ACCEPTED %s;", arg_array[1]);
-				write_pipe(traders[cursor]->exchange_fd, msg);
-				free(msg);
-				kill(traders[cursor]->pid, SIGUSR1);
+				if (valid) {
+
+					if (strcmp(arg_array[0], "BUY") == 0) {
+						orders = create_order(BUY, trader_number, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &buy_order, orders);
+
+					} else if (strcmp(arg_array[0], "SELL") == 0) {
+						orders = create_order(SELL, 12, strtol(arg_array[1], NULL, 10), arg_array[2], strtol(arg_array[3], NULL, 10), strtol(arg_array[4], NULL, 10), &sell_order, orders);
+
+					} else if (strcmp(arg_array[0], "AMEND") == 0) {
+						printf("amend");
+
+					} else if (strcmp(arg_array[0], "DEL") == 0) {
+						printf("del");
+					}
+					sprintf(msg, "ACCEPTED %s;", arg_array[1]);
 
 				// Generating and displaying the orderbook for the exchange
 				generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
 
+			} else {
+				msg = "INVALID;";
+			}
+
+			// Inform the trader that their order was accepted
+			write_pipe(traders[cursor]->exchange_fd, msg);
+			free(msg);
+			kill(traders[cursor]->pid, SIGUSR1);
 
 				cursor = 0;
 				while (arg_array[cursor] != NULL) {
