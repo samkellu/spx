@@ -543,22 +543,19 @@ int main(int argc, char **argv) {
 			// use select here to monitor pipe +++
 			if (read_trader != -1) {
 
-				read_trader = -1;
 				int cursor = 0;
 				while (traders[cursor] != NULL) {
-					printf("wow");
 					if (traders[cursor]->pid == read_trader) {
-						printf("wower");
 						arg_array = take_input(traders[cursor]->trader_fd);
 						break;
 					}
-					fflush(stdout);
 					cursor++;
 				}
 
 				if (traders[cursor] == NULL) {
 					continue;
 				}
+				read_trader = -1;
 
 				printf("%s [T%d] Parsing command: <", LOG_PREFIX, traders[cursor]->id);
 
