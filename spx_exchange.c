@@ -62,8 +62,6 @@ struct order** create_order(int type, int trader_id, int order_id, char product[
 	new_order->price = price;
 	new_order->trader_id = trader_id;
 
-	orders = operation(new_order, orders);
-
 	return orders;
 }
 
@@ -121,6 +119,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			orders = delete_order(orders, cheapest_index);
 
 			write_pipe(fd, msg);
+			close(fd);
 		}
 
 		if (new_order->qty != 0) {
@@ -253,7 +252,6 @@ char** take_input(int fd) {
 	return arg_array;
 }
 
-
 int initialise_trader(char* path, int* pid_array, int index) {
 	pid_array[index] = fork();
 	if (pid_array[index] == -1) {
@@ -364,7 +362,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 				order_str = "order";
 			}
 
-			printf("%s			%s %d @ $%d (%d %s)\n", LOG_PREFIX, type_str, levels[max_index].qty, levels[max_index].price, \
+			printf("%s        %s %d @ $%d (%d %s)\n", LOG_PREFIX, type_str, levels[max_index].qty, levels[max_index].price, \
 						levels[max_index].num, order_str);
 
 			levels[sort_cursor] = levels[max_index];
@@ -470,8 +468,7 @@ int main(int argc, char **argv) {
 					free(pid_array);
 					int cursor = 0;
 					while (orders[cursor] != NULL) {
-						free(orders[cursor]);
-						cursor++;
+						free(orders[cursor++]);
 					}
 					free(orders);
 					cursor = 0;
@@ -531,7 +528,9 @@ int main(int argc, char **argv) {
 				generate_orderbook(strtol(products[0], NULL, 10), products, orders);
 				char* msg = malloc(MAX_INPUT);
 				sprintf(msg, "ACCEPTED %s", arg_array[1]);
-				write_pipe(trader_fds[trader_number], msg);
+				write_pipe(exchange_fds[trader_number], msg);
+				kill(pid_array[trader_number], SIGUSR1);
+
 
 				int cursor = 0;
 				while (arg_array[cursor] != NULL) {

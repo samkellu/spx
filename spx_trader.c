@@ -7,6 +7,8 @@ int market_open = 0;
 
 void sig_read(int errno) {
   read_flag = 1;
+  printf("ww");
+  fflush(stdout);
   return;
 }
 
@@ -27,32 +29,35 @@ int main(int argc, char ** argv) {
     int trader_fd = open(path, O_RDWR);
 
     int debug_count = 0;
+    int flag = 0;
 
     while (running) {
       sleep(1);
       debug_count++;
-      if (debug_count == 20) {
+      if (debug_count == 5) {
         return 0;
       }
 
-      if (market_open) {
+      if (market_open && !flag) {
         write(trader_fd, "BUY 0 GPU 1 12;\n", strlen("BUY 0 GPU 1 12;\n") + 1);
         kill(ppid, SIGUSR1);
-        sleep(2);
-        return 0;
+        flag = 1;
       }
 
       if (read_flag) {
         char buf[MAX_INPUT] = "";
+        printf("here");
+        fflush(stdout);
         read(exchange_fd, buf, MAX_INPUT);
         printf("[Trader %d] [t=%d] Received from SPX: %s\n", id, 0, buf);
+        fflush(stdout);
+        printf("also here");
+        fflush(stdout);
 
         if (!market_open) {
           if (strcmp(buf, "MARKET OPEN;") == 0) {
             market_open = 1;
           }
-        } else {
-
         }
         read_flag = 0;
       }
