@@ -35,6 +35,8 @@ int write_pipe(int fd, char* message) {
 			return -1;
 		}
 		write(fd, message, strlen(message) + 1);
+		printf("nice cock");
+		fflush(stdout);
 		return 1;
 	}
 	return -1;
@@ -457,7 +459,6 @@ struct trader** disconnect(struct trader** traders, struct order** orders, char*
 	}
 	return traders;
 }
-
 
 int main(int argc, char **argv) {
 	if (argc > 1) {
