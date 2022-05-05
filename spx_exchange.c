@@ -540,7 +540,6 @@ int main(int argc, char **argv) {
 			}
 
 			char** arg_array;
-			int trader_number = -1;
 			// use select here to monitor pipe +++
 			if (read_trader != -1) {
 
@@ -593,7 +592,6 @@ int main(int argc, char **argv) {
 					free(arg_array);
 					continue;
 				}
-
 
 				int amount = strtol(arg_array[3], NULL, 10);
 				int price = strtol(arg_array[4], NULL, 10);
