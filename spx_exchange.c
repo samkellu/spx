@@ -595,25 +595,26 @@ int main(int argc, char **argv) {
 					// Generating and displaying the orderbook for the exchange
 					generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
 
+					char* market_msg = malloc(MAX_INPUT);
+					int index = 0;
+					sprintf(market_msg, "MARKET %s %s %d %d;", arg_array[0], arg_array[2], amount, price);
+
+					while (traders[index] != NULL) {
+						if (index != cursor) {
+							write_pipe(traders[index]->exchange_fd, market_msg);
+							kill(traders[index]->pid, SIGUSR1);
+						}
+						index++;
+					}
+					free(market_msg);
+
 				} else {
 					sprintf(msg, "INVALID;");
-
 				}
 
 				// Inform the trader that their order was accepted
 				write_pipe(traders[cursor]->exchange_fd, msg);
 				kill(traders[cursor]->pid, SIGUSR1);
-
-				int index = 0;
-				sprintf(msg, "MARKET %s %s %d %d;", arg_array[0], arg_array[2], amount, price);
-
-				while (traders[index] != NULL) {
-					if (index != cursor) {
-						write_pipe(traders[index]->exchange_fd, msg);
-						kill(traders[index]->pid, SIGUSR1);
-					}
-					index++;
-				}
 				free(msg);
 
 				cursor = 0;
