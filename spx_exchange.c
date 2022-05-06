@@ -346,7 +346,6 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 			int max = 0;
 			int max_index;
 			for (int level = 0; level < num_levels; level++) {
-				printf("%d, %d, %d\n", levels[level].qty, levels[level].price, levels[level].type);
 				if (levels[level].price > max) {
 					max_index = level;
 					max = levels[level].price;
