@@ -307,7 +307,10 @@ struct level* orderbook_helper(struct order* current_order, int* num_levels, int
 	}
 
 	if (valid) {
+		// +++ ploblem area!!!
 		*num_levels = *num_levels + 1;
+		printf("%d", *num_levels);
+		fflush(stdout);
 		*num_type = *num_type + 1;
 		levels = realloc(levels, sizeof(struct level) * *num_levels);
 		struct level new_level = {current_order->price, 1, current_order->qty, current_order->type};
