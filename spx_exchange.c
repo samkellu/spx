@@ -572,7 +572,16 @@ int main(int argc, char **argv) {
 
 				printf(">\n");
 
-				if (arg_cursor != 5) {
+				int valid_num_args = 0;
+				if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
+					valid_num_args = 5;
+				} else if (strcmp(arg_array[0], "AMEND") == 0) {
+					valid_num_args = 4;
+				} else if (strcmp(arg_array[0], "CANCEL") == 0) {
+					valid_num_args = 2;
+				}
+
+				if (arg_cursor != valid_num_args) {
 					arg_cursor = 0;
 
 					while (arg_array[arg_cursor] != NULL) {
@@ -590,21 +599,47 @@ int main(int argc, char **argv) {
 					free(msg);
 					continue;
 				}
+				int qty;
+				int price;
+				int order_id;
 
-				int qty = strtol(arg_array[3], NULL, 10);
-				int price = strtol(arg_array[4], NULL, 10);
-				int order_id = strtol(arg_array[1], NULL, 10);
-
-				int id_valid = (order_id == traders[cursor]->current_order_id);
+				int id_valid = 0;
 				int product_valid = 0;
-				int qty_valid = (qty > 0 && qty < 1000000);
-				int price_valid = (price > 0 && price < 1000000);
+				int qty_valid = 0;
+				int price_valid = 0;
 
-				for (int product = 1; product <= strtol(products[0], NULL, 10); product++) {
-					if (strcmp(products[product], arg_array[2]) == 0) {
+				switch (valid_num_args) {
+					case 5: // case for SELL and BUY orders
+						qty = strtol(arg_array[3], NULL, 10);
+						price = strtol(arg_array[4], NULL, 10);
+
+						for (int product = 1; product <= strtol(products[0], NULL, 10); product++) {
+							if (strcmp(products[product], arg_array[2]) == 0) {
+								product_valid = 1;
+								break;
+							}
+						}
+						break;
+
+					case 3: // case for AMEND orders
+						qty = strtol(arg_array[2], NULL, 10);
+						price = strtol(arg_array[3], NULL, 10);
 						product_valid = 1;
 						break;
-					}
+
+					case 2:
+						product_valid = 1;
+						qty_valid = 1;
+						price_valid = 1;
+						break;
+				}
+
+				order_id = strtol(arg_array[1], NULL, 10);
+				id_valid = (order_id == traders[cursor]->current_order_id);
+
+				if (valid_num_args == 5 || valid_num_args == 3) {
+					qty_valid = (qty > 0 && qty < 1000000);
+					price_valid = (price > 0 && price < 1000000);
 				}
 
 				char* msg = malloc(MAX_INPUT);
@@ -619,8 +654,8 @@ int main(int argc, char **argv) {
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
 						printf("amend");
 
-					} else if (strcmp(arg_array[0], "DEL") == 0) {
-						printf("del");
+					} else if (strcmp(arg_array[0], "CANCEL") == 0) {
+						orders = create_order(CANCEL, traders[cursor]->id, order_id, NULL, 0, 0, &cancel_order, orders);
 					}
 					sprintf(msg, "ACCEPTED %s;", arg_array[1]);
 					traders[cursor]->current_order_id++;
