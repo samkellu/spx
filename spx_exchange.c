@@ -341,12 +341,11 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 			cursor++;
 		}
 		printf("%s\tProduct: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
-		int sort_cursor = 0;
-		while (sort_cursor < num_levels) {
+		while (num_levels > 0) {
 
 			int max = 0;
 			int max_index;
-			for (int level = sort_cursor; level < num_levels; level++) {
+			for (int level = 0; level < num_levels; level++) {
 				printf("%d, %d, %d\n", levels[level].qty, levels[level].price, levels[level].type);
 				if (levels[level].price > max) {
 					max_index = level;
@@ -371,11 +370,12 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 			printf("%s\t\t%s %d @ $%d (%d %s)\n", LOG_PREFIX, type_str, levels[max_index].qty, levels[max_index].price, \
 						levels[max_index].num, order_str);
 
-			levels[sort_cursor] = levels[max_index];
-			for (int level = max_index; level > sort_cursor; level--) {
-				levels[level] = levels[level - 1];
+			num_levels--;
+			for (int level = max_index; level < num_levels; level++) {
+				levels[level] = levels[level + 1];
 			}
-			sort_cursor++;
+
+			levels = realloc(levels, sizeof(struct level) * num_levels);
 		}
 		free(levels);
 	}
