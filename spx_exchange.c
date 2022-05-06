@@ -371,8 +371,8 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 						levels[max_index].num, order_str);
 
 			levels[sort_cursor] = levels[max_index];
-			for (int level = max_index; level > sort_cursor + 1; level--) {
-				levels[level] = levels[level + 1];
+			for (int level = max_index; level > sort_cursor; level--) {
+				levels[level] = levels[level - 1];
 			}
 			sort_cursor++;
 		}
