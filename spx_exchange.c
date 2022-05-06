@@ -40,17 +40,16 @@ int write_pipe(int fd, char* message) {
 	return -1;
 }
 
-struct order** delete_order(struct order** orders, int index) {
-	int cursor = index;
-	free(orders[cursor]);
-	while (orders[cursor + 1] != NULL) {
-		orders[cursor] = orders[cursor + 1];
-		cursor++;
+struct order** cancel_order(struct order* new_order, struct order** orders) {
+	int index = new_order->order_id;
+	free(orders[index]);
+	while (orders[index + 1] != NULL) {
+		orders[index] = orders[index + 1];
+		index++;
 	}
-	orders = realloc(orders, sizeof(struct order) * cursor);
+	orders = realloc(orders, sizeof(struct order) * index);
 	return orders;
 }
-
 
 struct order** create_order(int type, int trader_id, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**), struct order** orders) {
  // Adding order to the exchange's array of orders/ memory management stuff
@@ -73,7 +72,6 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 	while (matching) {
 
 		struct order* cheapest_sell = NULL;
-		int cheapest_index = 0;
 		int current_order = 0; // orders is null terminated, so 0 always exists
 
 		while (orders[current_order] != NULL) {
@@ -85,7 +83,6 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			if (trader_valid && product_valid && price_valid && orders[current_order]->type == SELL) {
 				if (cheapest_sell == NULL || orders[current_order]->price < cheapest_sell->price) {
 					cheapest_sell = orders[current_order];
-					cheapest_index = current_order;
 				}
 			}
 			current_order++;
@@ -119,7 +116,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 
 			char msg[MAX_INPUT];
 			snprintf(msg, MAX_INPUT, "FILL %d %d", cheapest_sell->order_id, cheapest_sell->qty);
-			orders = delete_order(orders, cheapest_index);
+			orders = cancel_order(cheapest_sell, orders);
 
 			write_pipe(fd, msg);
 			close(fd);
@@ -156,7 +153,7 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 				printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.", LOG_PREFIX, orders[current_order]->order_id,\
 								orders[current_order]->trader_id, new_order->order_id, new_order->trader_id, cost,\
 								(int)round(0.01 * cost));
-				orders = delete_order(orders, current_order);
+				orders = cancel_order(orders[current_order], orders);
 				current_order--;
 				// send signal to fill order to current_order.trader
 			} else {
@@ -179,11 +176,6 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 // 	return new_order;
 // }
 //
-// struct order cancel_order(int struct order_id) {
-// 	// del struct order
-// 	// struct order checking for sells??
-// 	return NULL; // ?
-// }
 
 // Reads the products file and returns a list of the product's names
 char** read_products_file(char* fp) {
@@ -307,7 +299,6 @@ struct level* orderbook_helper(struct order* current_order, int* num_levels, int
 	}
 
 	if (valid) {
-		// +++ ploblem area!!!
 		*num_levels = *num_levels + 1;
 		*num_type = *num_type + 1;
 		levels = realloc(levels, sizeof(struct level) * *num_levels);
