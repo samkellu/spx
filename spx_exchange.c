@@ -514,7 +514,7 @@ int disconnect(struct trader** traders, struct order** orders, char** products, 
 			free(orders[cursor++]);
 		}
 		free(orders);
-		
+
 		cursor = 0;
 		while (cursor < argc - 2) {
 			char path[PATH_LENGTH];
@@ -742,25 +742,26 @@ int main(int argc, char **argv) {
 				}
 				if (id_valid && product_valid && qty_valid && price_valid) {
 					// Inform the trader that their order was accept
-					if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
-						traders[cursor]->current_order_id++;
-					}
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
 					free(msg);
 
-					char* market_msg = malloc(MAX_INPUT);
-					int index = 0;
-					sprintf(market_msg, "MARKET %s %s %d %d;", arg_array[0], arg_array[2], qty, price);
+					if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
 
-					while (traders[index] != NULL) {
-						if (index != cursor) {
-							write_pipe(traders[index]->exchange_fd, market_msg);
-							kill(traders[index]->pid, SIGUSR1);
+						traders[cursor]->current_order_id++;
+						char* market_msg = malloc(MAX_INPUT);
+						sprintf(market_msg, "MARKET %s %s %d %d;", arg_array[0], arg_array[2], qty, price);
+						int index = 0;
+
+						while (traders[index] != NULL) {
+							if (index != cursor) {
+								write_pipe(traders[index]->exchange_fd, market_msg);
+								kill(traders[index]->pid, SIGUSR1);
+							}
+							index++;
 						}
-						index++;
+						free(market_msg);
 					}
-					free(market_msg);
 
 					if (strcmp(arg_array[0], "BUY") == 0) {
 						orders = create_order(BUY, product_index, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders);
