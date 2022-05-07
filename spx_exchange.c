@@ -183,10 +183,14 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 			qty = highest_buy->qty;
 			new_order->qty -= highest_buy->qty;
 			highest_buy->qty = 0;
+			printf("qty<=%d",qty);
+
 		} else {
 			highest_buy->qty -= new_order->qty;
 			qty = new_order->qty;
 			new_order->qty = 0;
+			printf("qty>%d",qty);
+
 		}
 
 		int cost = qty * highest_buy->price;
