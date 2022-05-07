@@ -489,7 +489,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 	}
 }
 
-struct trader** disconnect(struct trader** traders, struct order** orders, char** products, int argc) {
+int disconnect(struct trader** traders, struct order** orders, char** products, int argc) {
 	int cursor = 0;
 	int count_active = 0;
 
@@ -539,9 +539,9 @@ struct trader** disconnect(struct trader** traders, struct order** orders, char*
 		}
 		free(products);
 
-		return NULL;
+		return 1;
 	}
-	return traders;
+	return 0;
 }
 
 int main(int argc, char **argv) {
@@ -617,8 +617,7 @@ int main(int argc, char **argv) {
 		while (running) {
 
 			if (disconnect_trader != -1) {
-				traders = disconnect(traders, orders, products, argc);
-				if (traders == NULL) {
+				if (disconnect(traders, orders, products, argc)) {
 					return 0;
 				}
 			}
