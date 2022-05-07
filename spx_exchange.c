@@ -605,7 +605,7 @@ int main(int argc, char **argv) {
 		}
 
 		struct trader** traders = malloc(sizeof(struct trader) * (argc - 1));
-		traders[argc - 2] = NULL;
+		traders[argc - 1] = NULL;
 
 		struct sigaction sig_act;
 
