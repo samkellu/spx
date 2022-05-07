@@ -160,7 +160,7 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		}
 
 		long cost = (long)qty * cheapest_sell->price;
-		long fee = (long)round(FEE_AMOUNT * cost);
+		long fee = (long)roundl((long)FEE_AMOUNT * cost);
 		total_fees += fee;
 
 		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%ld, fee: $%ld.\n", LOG_PREFIX, cheapest_sell->order_id,\
@@ -256,7 +256,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		}
 
 		long cost = (long)qty * highest_buy->price;
-		long fee = (long)round(FEE_AMOUNT * cost);
+		long fee = (long)roundl((long)FEE_AMOUNT * cost);
 		total_fees += fee;
 
 		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%ld, fee: $%ld.\n", LOG_PREFIX, highest_buy->order_id,\
