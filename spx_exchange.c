@@ -121,11 +121,11 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 			new_order->qty = 0;
 		}
 
-		int cost = qty * cheapest_sell->price;
-		int fee = (int)round(FEE_AMOUNT * cost);
+		long cost = qty * cheapest_sell->price;
+		long fee = (long)round(FEE_AMOUNT * cost);
 		total_fees += fee;
 
-		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.\n", LOG_PREFIX, cheapest_sell->order_id,\
+		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%ld, fee: $%ld.\n", LOG_PREFIX, cheapest_sell->order_id,\
 		cheapest_sell->trader->id, new_order->order_id, new_order->trader->id, cost,\
 		fee);
 
@@ -217,11 +217,11 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 
 		}
 
-		int cost = qty * highest_buy->price;
-		int fee = (int)round(FEE_AMOUNT * cost);
+		long cost = qty * highest_buy->price;
+		long fee = (long)round(FEE_AMOUNT * cost);
 		total_fees += fee;
 
-		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.\n", LOG_PREFIX, highest_buy->order_id,\
+		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%ld, fee: $%ld.\n", LOG_PREFIX, highest_buy->order_id,\
 		highest_buy->trader->id, new_order->order_id, new_order->trader->id, cost,\
 		fee);
 
@@ -694,7 +694,6 @@ int main(int argc, char **argv) {
 					// Inform the trader that their order was invalid
 					char* msg = malloc(MAX_INPUT);
 					sprintf(msg, "INVALID;");
-					printf("here");
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
 					free(msg);
@@ -751,6 +750,7 @@ int main(int argc, char **argv) {
 					qty_valid = (qty > 0 && qty < 1000000);
 					price_valid = (price > 0 && price < 1000000);
 				}
+				printf("val %d %d %d %d\n",id_valid, product_valid, qty_valid, price_valid);
 				if (id_valid && product_valid && qty_valid && price_valid) {
 					// Inform the trader that their order was accept
 					write_pipe(traders[cursor]->exchange_fd, msg);
@@ -791,7 +791,6 @@ int main(int argc, char **argv) {
 
 				} else {
 					// Inform the trader that their order was invalid
-					printf("there");
 					sprintf(msg, "INVALID;");
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
