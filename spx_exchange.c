@@ -40,18 +40,27 @@ int write_pipe(int fd, char* message) {
 	return -1;
 }
 
+struct order** delete_order(struct order* del_order, struct order** orders) {
+	int index = 0;
+	while (orders[index] != del_order) {
+		index++;
+	}
+	while (orders[index] != NULL) {
+		orders[index] = orders[index + 1];
+		index++;
+	}
+	orders = realloc(orders, sizeof(struct order) * index);
+	free(del_order);
+	return orders;
+}
+
 struct order** cancel_order(struct order* new_order, struct order** orders, int pos_index) {
 
 	int index = 0;
 	while (orders[index]->trader != new_order->trader && orders[index]->order_id != new_order->order_id) {
 		index++;
 	}
-	free(orders[index]);
-	while (orders[index] != NULL) {
-		orders[index] = orders[index + 1];
-		index++;
-	}
-	orders = realloc(orders, sizeof(struct order) * index);
+	orders = delete_order(orders[index], orders);
 	free(new_order);
 	return orders;
 }
@@ -146,7 +155,7 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		new_order->trader->position_cost[pos_index] -= (cost + fee);
 
 		if (cheapest_sell->qty == 0) {
-			orders = cancel_order(cheapest_sell, orders, pos_index);
+			orders = delete_order(cheapest_sell, orders);
 		} else {
 			break;
 		}
@@ -242,7 +251,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		new_order->trader->position_cost[pos_index] += cost - fee;
 
 		if (highest_buy->qty == 0) {
-			orders = cancel_order(highest_buy, orders, pos_index);
+			orders = delete_order(highest_buy, orders);
 		} else {
 			break;
 		}
@@ -684,7 +693,6 @@ int main(int argc, char **argv) {
 					free(arg_array);
 					// Inform the trader that their order was invalid
 					char* msg = malloc(MAX_INPUT);
-					printf("here");
 					sprintf(msg, "INVALID;");
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
@@ -783,12 +791,10 @@ int main(int argc, char **argv) {
 				} else {
 					// Inform the trader that their order was invalid
 					sprintf(msg, "INVALID;");
-					printf("there");
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
 					free(msg);
 				}
-
 
 				cursor = 0;
 				while (arg_array[cursor] != NULL) {
