@@ -50,9 +50,10 @@ struct order** cancel_order(struct order* new_order, struct order** orders) {
 	free(orders[index]);
 	while (orders[index] != NULL) {
 		orders[index] = orders[index + 1];
+		printf("id %d", orders[index]->order_id);
 		index++;
 	}
-	orders = realloc(orders, sizeof(struct order) * index);
+	orders = realloc(orders, sizeof(struct order) * (index - 1));
 	return orders;
 }
 
