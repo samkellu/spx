@@ -123,7 +123,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, cheapest_sell->trader->id);
 		int fd = open(path, O_WRONLY);
 		// Inform trader that their order has been filled
-		snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->trader->id, qty);
+		snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->order_id, qty);
 		write_pipe(fd, msg);
 		kill(cheapest_sell->trader->pid, SIGUSR1);
 		close(fd);
