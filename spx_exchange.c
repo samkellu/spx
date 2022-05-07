@@ -743,7 +743,7 @@ int main(int argc, char **argv) {
 					qty_valid = (qty > 0 && qty < 1000000);
 					price_valid = (price > 0 && price < 1000000);
 				}
-
+				printf("%d %d %d %d %d\n", valid_num_args, id_valid, product_valid, qty_valid, price_valid);
 				char* msg = malloc(MAX_INPUT);
 				if (id_valid && product_valid && qty_valid && price_valid) {
 					// Inform the trader that their order was accept
