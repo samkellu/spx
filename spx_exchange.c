@@ -699,7 +699,7 @@ int main(int argc, char **argv) {
 						for (int product = 1; product <= strtol(products[0], NULL, 10); product++) {
 							if (strcmp(products[product], arg_array[2]) == 0) {
 								product_valid = 1;
-								product_index = product;
+								product_index = product - 1;
 								break;
 							}
 						}
