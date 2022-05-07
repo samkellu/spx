@@ -118,14 +118,14 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			int fd = open(path, O_WRONLY);
 
 			char msg[MAX_INPUT];
-			snprintf(msg, MAX_INPUT, "FILL %d %d", cheapest_sell->order_id, cheapest_sell->qty);
+			snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->order_id, cheapest_sell->qty);
 			orders = cancel_order(cheapest_sell, orders);
 
 			write_pipe(fd, msg);
 			close(fd);
 		}
 
-		if (new_order->qty != 0) {
+		if (new_order->qty == 0) {
 			break;
 		}
 	}
@@ -195,14 +195,14 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 			int fd = open(path, O_WRONLY);
 
 			char msg[MAX_INPUT];
-			snprintf(msg, MAX_INPUT, "FILL %d %d", highest_buy->order_id, highest_buy->qty);
+			snprintf(msg, MAX_INPUT, "FILL %d %d;", highest_buy->order_id, highest_buy->qty);
 			orders = cancel_order(highest_buy, orders);
 
 			write_pipe(fd, msg);
 			close(fd);
 		}
 
-		if (new_order->qty != 0) {
+		if (new_order->qty == 0) {
 			break;
 		}
 	}
