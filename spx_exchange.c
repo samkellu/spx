@@ -768,18 +768,22 @@ int main(int argc, char **argv) {
 					case 4: // case for AMEND orders
 						qty = strtol(arg_array[2], NULL, 10);
 						price = strtol(arg_array[3], NULL, 10);
-						product_valid = 1;
-						id_valid = (order_id < traders[cursor]->current_order_id);
 						sprintf(msg, "AMENDED %s;", arg_array[1]);
-						break;
 
 					case 2:
-						product_valid = 1;
 						qty_valid = 1;
 						price_valid = 1;
-						id_valid = (order_id < traders[cursor]->current_order_id);
 						sprintf(msg, "CANCELLED %s;", arg_array[1]);
-						break;
+
+					case 4||2:
+						product_valid = 1;
+						int index = 0;
+						while (orders[index] != NULL) {
+							if (orders[index]->trader == traders[cursor] && orders[index]->order_id == order_id) {
+								id_valid = 1;
+								break;
+							}
+						}
 				}
 
 
