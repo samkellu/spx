@@ -110,7 +110,7 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		}
 
 		int cost = qty * cheapest_sell->price;
-		int fee = (int)round(0.01 * cost);
+		int fee = (int)round(FEE_AMOUNT * cost);
 		total_fees += fee;
 
 		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.\n", LOG_PREFIX, cheapest_sell->order_id,\
@@ -120,23 +120,25 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		char msg[MAX_INPUT];
 		char path[PATH_LENGTH];
 
+		// Inform trader that their order has been filled
 		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, cheapest_sell->trader->id);
 		int fd = open(path, O_WRONLY);
-		// Inform trader that their order has been filled
 		snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->order_id, qty);
 		write_pipe(fd, msg);
 		kill(cheapest_sell->trader->pid, SIGUSR1);
 		close(fd);
+		// Update position values
 		cheapest_sell->trader->position_qty[pos_index] -= qty;
 		cheapest_sell->trader->position_cost[pos_index] += cost;
 
+		// Inform initiating trader that their order has been filled
 		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
 		fd = open(path, O_WRONLY);
-		// Inform initiating trader that their order has been filled
 		snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
 		write_pipe(fd, msg);
 		kill(new_order->trader->pid, SIGUSR1);
 		close(fd);
+		// Update position values
 		new_order->trader->position_qty[pos_index] += qty;
 		new_order->trader->position_cost[pos_index] -= (cost + fee);
 
@@ -204,7 +206,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		}
 
 		int cost = qty * highest_buy->price;
-		int fee = (int)round(0.01 * cost);
+		int fee = (int)round(FEE_AMOUNT * cost);
 		total_fees += fee;
 
 		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.\n", LOG_PREFIX, highest_buy->order_id,\
@@ -213,6 +215,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 
 		char msg[MAX_INPUT];
 		char path[PATH_LENGTH];
+
 		// Inform trader that their order has been filled
 		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, highest_buy->trader->id);
 		int fd = open(path, O_WRONLY);
@@ -220,6 +223,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		write_pipe(fd, msg);
 		kill(highest_buy->trader->pid, SIGUSR1);
 		close(fd);
+		// Update position values
 		highest_buy->trader->position_qty[pos_index] += qty;
 		highest_buy->trader->position_cost[pos_index] -= cost;
 
@@ -230,6 +234,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		write_pipe(fd, msg);
 		kill(new_order->trader->pid, SIGUSR1);
 		close(fd);
+		// Update position values
 		new_order->trader->position_qty[pos_index] -= qty;
 		new_order->trader->position_cost[pos_index] += cost - fee;
 
@@ -254,14 +259,22 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 	free(new_order);
 	return orders;
 }
-//
-// struct order* amend_order(int order_id, int qty, int price) {
-// 	struct order* new_order = create_order(AMEND, order_id, NULL, qty, price, &amend_order);
-//
-// 	// del old struct order and replace
-// 	return new_order;
-// }
-//
+
+struct order** amend_order(struct order* new_order, struct order** orders, int pos_index) {
+
+	int cursor = 0;
+	while (orders[cursor] != NULL) {
+
+		if (orders[cursor]->order_id == new_order->order_id && orders[cursor]->trader == new_order->trader) {
+			orders[cursor]->qty = new_order->qty;
+			orders[cursor]->price = new_order->price;
+			break;
+		}
+		cursor++;
+	}
+	return orders;
+}
+
 
 // Reads the products file and returns a list of the product's names
 char** read_products_file(char* fp) {
@@ -678,6 +691,7 @@ int main(int argc, char **argv) {
 					free(arg_array);
 					// Inform the trader that their order was invalid
 					char* msg = malloc(MAX_INPUT);
+					printf("here");
 					sprintf(msg, "INVALID;");
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
@@ -770,6 +784,7 @@ int main(int argc, char **argv) {
 				} else {
 					// Inform the trader that their order was invalid
 					sprintf(msg, "INVALID;");
+					printf("there");
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
 					free(msg);
