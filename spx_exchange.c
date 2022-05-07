@@ -96,9 +96,11 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 		if (cheapest_sell->qty <= new_order->qty) {
 			qty = cheapest_sell->qty;
 			new_order->qty -= cheapest_sell->qty;
+			cheapest_sell->qty = 0;
 		} else {
 			cheapest_sell->qty -= new_order->qty;
 			qty = new_order->qty;
+			new_order->qty = 0;
 		}
 
 		int cost = qty * cheapest_sell->price;
@@ -141,31 +143,77 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 
 // Manages the matching process the sell orders when they are received
 struct order** sell_order(struct order* new_order, struct order** orders) {
+	int matching = 1;
 
-	int current_order = 0; // orders is null terminated, so 0 always exists
-	while (orders[current_order] != NULL) {
-		// Booleans to check if the current order is compatible with the new order
-		int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
-		int price_valid = (orders[current_order]->price >= new_order->price);
-		if (product_valid && price_valid && orders[current_order]->type == BUY) {
-			if (orders[current_order]->qty <= new_order->qty) {
-				int cost = orders[current_order]->qty * new_order->price;
-				printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.", LOG_PREFIX, orders[current_order]->order_id,\
-								orders[current_order]->trader_id, new_order->order_id, new_order->trader_id, cost,\
-								(int)round(0.01 * cost));
-				orders = cancel_order(orders[current_order], orders);
-				current_order--;
-				// send signal to fill order to current_order.trader
-			} else {
-				new_order->qty -= orders[current_order]->qty;
+	while (matching) {
+
+		struct order* highest_buy = NULL;
+		int current_order = 0; // orders is null terminated, so 0 always exists
+
+		while (orders[current_order] != NULL) {
+			// Booleans to check if the current order is compatible with the new order
+			int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
+			int price_valid = (orders[current_order]->price >= new_order->price); // +++ check for equality in the spec
+			int trader_valid = (orders[current_order]->trader_id != new_order->trader_id);
+
+			if (trader_valid && product_valid && price_valid && orders[current_order]->type == BUY) {
+				if (highest_buy == NULL || orders[current_order]->price > highest_buy->price) {
+					highest_buy = orders[current_order];
+				}
 			}
+			current_order++;
 		}
-		current_order++;
-	}
 
-	orders = realloc(orders, sizeof(struct order) * (current_order + 2));
-	orders[current_order] = new_order;
-	orders[current_order + 1] = NULL;
+		if (highest_buy == NULL) {
+			break;
+		}
+
+		int qty = 0;
+		if (highest_buy->qty <= new_order->qty) {
+			qty = highest_buy->qty;
+			new_order->qty -= highest_buy->qty;
+			highest_buy->qty = 0;
+		} else {
+			highest_buy->qty -= new_order->qty;
+			qty = new_order->qty;
+			new_order->qty = 0;
+		}
+
+		int cost = qty * highest_buy->price;
+		int fee = (int)round(0.01 * cost);
+		total_fees += fee;
+
+		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.", LOG_PREFIX, orders[current_order]->order_id,\
+		orders[current_order]->trader_id, new_order->order_id, new_order->trader_id, cost,\
+		fee);
+
+		if (highest_buy->qty == 0) {
+			char path[PATH_LENGTH];
+			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, highest_buy->order_id);
+			int fd = open(path, O_WRONLY);
+
+			char msg[MAX_INPUT];
+			snprintf(msg, MAX_INPUT, "FILL %d %d", highest_buy->order_id, highest_buy->qty);
+			orders = cancel_order(highest_buy, orders);
+
+			write_pipe(fd, msg);
+			close(fd);
+		}
+
+		if (new_order->qty != 0) {
+			break;
+		}
+	}
+	if (new_order->qty != 0) {
+		int cursor = 0;
+		while (orders[cursor] != NULL) {
+			cursor++;
+		}
+
+		orders = realloc(orders, sizeof(struct order) * (cursor + 2));
+		orders[cursor] = new_order;
+		orders[cursor + 1] = NULL;
+	}
 	return orders;
 }
 //
