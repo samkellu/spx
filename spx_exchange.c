@@ -209,6 +209,7 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 			char msg[MAX_INPUT];
 			snprintf(msg, MAX_INPUT, "FILL %d %d;", highest_buy->order_id, highest_buy->qty);
 			orders = cancel_order(highest_buy, orders);
+			printf("cancelled\n");
 
 			write_pipe(fd, msg);
 			close(fd);
