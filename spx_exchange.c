@@ -40,7 +40,7 @@ int write_pipe(int fd, char* message) {
 	return -1;
 }
 
-struct order** cancel_order(struct order* new_order, struct order** orders) {
+struct order** cancel_order(struct order* new_order, struct order** orders, int pos_index) {
 
 	int index = 0;
 	while (orders[index] != new_order) {
@@ -55,7 +55,7 @@ struct order** cancel_order(struct order* new_order, struct order** orders) {
 	return orders;
 }
 
-struct order** create_order(int type, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**), struct order** orders) {
+struct order** create_order(int type, int pos_index, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**, int), struct order** orders) {
  // Adding order to the exchange's array of orders/ memory management stuff
 	struct order* new_order = malloc(sizeof(struct order));
 	new_order->type = type;
@@ -65,12 +65,12 @@ struct order** create_order(int type, struct trader* trader, int order_id, char 
 	new_order->price = price;
 	new_order->trader = trader;
 
-	orders = operation(new_order, orders);
+	orders = operation(new_order, orders, pos_index);
 
 	return orders;
 }
 
-struct order** buy_order(struct order* new_order, struct order** orders) {
+struct order** buy_order(struct order* new_order, struct order** orders, int pos_index) {
 	int matching = 1;
 
 	while (matching) {
@@ -127,6 +127,8 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 		write_pipe(fd, msg);
 		kill(cheapest_sell->trader->pid, SIGUSR1);
 		close(fd);
+		cheapest_sell->trader->position_qty[pos_index] -= qty;
+		cheapest_sell->trader->position_cost[pos_index] -= cost;
 
 		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
 		fd = open(path, O_WRONLY);
@@ -135,9 +137,11 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 		write_pipe(fd, msg);
 		kill(new_order->trader->pid, SIGUSR1);
 		close(fd);
+		new_order->trader->position_qty[pos_index] += qty;
+		new_order->trader->position_cost[pos_index] += cost;
 
 		if (cheapest_sell->qty == 0) {
-			orders = cancel_order(cheapest_sell, orders);
+			orders = cancel_order(cheapest_sell, orders, pos_index);
 		} else {
 			break;
 		}
@@ -157,7 +161,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 }
 
 // Manages the matching process the sell orders when they are received
-struct order** sell_order(struct order* new_order, struct order** orders) {
+struct order** sell_order(struct order* new_order, struct order** orders, int pos_index) {
 	int matching = 1;
 
 	while (matching) {
@@ -214,6 +218,8 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 		write_pipe(fd, msg);
 		kill(highest_buy->trader->pid, SIGUSR1);
 		close(fd);
+		highest_buy->trader->position_qty[pos_index] += qty;
+		highest_buy->trader->position_cost[pos_index] += cost;
 
 		// inform initiating trader that their order has been fulfilled
 		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
@@ -222,9 +228,11 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 		write_pipe(fd, msg);
 		kill(new_order->trader->pid, SIGUSR1);
 		close(fd);
+		new_order->trader->position_qty[pos_index] -= qty;
+		new_order->trader->position_cost[pos_index] -= cost;
 
 		if (highest_buy->qty == 0) {
-			orders = cancel_order(highest_buy, orders);
+			orders = cancel_order(highest_buy, orders, pos_index);
 		} else {
 			break;
 		}
@@ -681,6 +689,7 @@ int main(int argc, char **argv) {
 				int product_valid = 0;
 				int qty_valid = 0;
 				int price_valid = 0;
+				int product_index = 0;
 
 				switch (valid_num_args) {
 					case 5: // case for SELL and BUY orders
@@ -690,6 +699,7 @@ int main(int argc, char **argv) {
 						for (int product = 1; product <= strtol(products[0], NULL, 10); product++) {
 							if (strcmp(products[product], arg_array[2]) == 0) {
 								product_valid = 1;
+								product_index = product;
 								break;
 							}
 						}
@@ -739,16 +749,16 @@ int main(int argc, char **argv) {
 					free(market_msg);
 
 					if (strcmp(arg_array[0], "BUY") == 0) {
-						orders = create_order(BUY, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders);
+						orders = create_order(BUY, product_index, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders);
 
 					} else if (strcmp(arg_array[0], "SELL") == 0) {
-						orders = create_order(SELL, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders);
+						orders = create_order(SELL, product_index, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders);
 
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
 						printf("amend");
 
 					} else if (strcmp(arg_array[0], "CANCEL") == 0) {
-						orders = create_order(CANCEL, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders);
+						orders = create_order(CANCEL, product_index, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders);
 					}
 					// Generating and displaying the orderbook for the exchange
 					generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
