@@ -52,6 +52,7 @@ struct order** cancel_order(struct order* new_order, struct order** orders, int 
 		index++;
 	}
 	orders = realloc(orders, sizeof(struct order) * index);
+	free(new_order);
 	return orders;
 }
 
@@ -274,6 +275,7 @@ struct order** amend_order(struct order* new_order, struct order** orders, int p
 		}
 		cursor++;
 	}
+	free(new_order);
 	return orders;
 }
 
@@ -747,8 +749,8 @@ int main(int argc, char **argv) {
 					free(msg);
 
 					if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
-
 						traders[cursor]->current_order_id++;
+						// get order being cancelled/amended and act accordigly
 						char* market_msg = malloc(MAX_INPUT);
 						sprintf(market_msg, "MARKET %s %s %d %d;", arg_array[0], arg_array[2], qty, price);
 						int index = 0;
