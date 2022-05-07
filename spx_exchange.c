@@ -11,7 +11,7 @@
 int read_trader = -1;
 int init_flag = 0;
 int disconnect_trader = -1;
-int total_fees = 0;
+long total_fees = 0;
 
 
 void read_sig(int signo, siginfo_t *si, void *uc) {
