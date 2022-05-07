@@ -509,6 +509,7 @@ struct trader** disconnect(struct trader** traders, struct order** orders, char*
 		printf("%s Trading completed\n", LOG_PREFIX);
 		printf("%s Exchange fees collected: $%d\n", LOG_PREFIX, total_fees);
 
+		cursor = 0;
 		while (orders[cursor] != NULL) {
 			free(orders[cursor++]);
 		}
