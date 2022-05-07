@@ -47,14 +47,9 @@ struct order** cancel_order(struct order* new_order, struct order** orders) {
 		index++;
 	}
 
-	printf("%d ", index);
-	fflush(stdout);
-
 	free(orders[index]);
 	while (orders[index] != NULL) {
 		orders[index] = orders[index + 1];
-		printf("id %d", orders[index]->order_id);
-		fflush(stdout);
 		index++;
 	}
 	orders = realloc(orders, sizeof(struct order) * (index - 1));
@@ -132,7 +127,9 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 
 			char msg[MAX_INPUT];
 			snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->order_id, cheapest_sell->qty);
+			printf("cancelled %d\n", cheapest_sell->order_id);
 			orders = cancel_order(cheapest_sell, orders);
+			printf("cancelled %d?\n", cheapest_sell->order_id);
 
 			write_pipe(fd, msg);
 			close(fd);
@@ -213,8 +210,9 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 
 			char msg[MAX_INPUT];
 			snprintf(msg, MAX_INPUT, "FILL %d %d;", highest_buy->order_id, highest_buy->qty);
+			printf("cancelled %d\n", highest_buy->order_id);
 			orders = cancel_order(highest_buy, orders);
-			printf("cancelled\n");
+			printf("cancelled %d?\n", highest_buy->order_id);
 
 			write_pipe(fd, msg);
 			close(fd);
