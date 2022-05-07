@@ -43,14 +43,18 @@ int write_pipe(int fd, char* message) {
 struct order** cancel_order(struct order* new_order, struct order** orders) {
 
 	int index = 0;
-	while (orders[index]->order_id != new_order->order_id && orders[index]->trader != new_order->trader) {
+	while (orders[index]->order_id != new_order->order_id && orders[index]->trader->id != new_order->trader->id) {
 		index++;
 	}
+
+	printf("%d ", index);
+	fflush(stdout);
 
 	free(orders[index]);
 	while (orders[index] != NULL) {
 		orders[index] = orders[index + 1];
 		printf("id %d", orders[index]->order_id);
+		fflush(stdout);
 		index++;
 	}
 	orders = realloc(orders, sizeof(struct order) * (index - 1));
