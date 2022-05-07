@@ -158,7 +158,7 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 			new_order->qty = 0;
 		}
 
-		long cost = qty * cheapest_sell->price;
+		long cost = (long)(qty * cheapest_sell->price);
 		long fee = (long)round(FEE_AMOUNT * cost);
 		total_fees += fee;
 
@@ -254,7 +254,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 
 		}
 
-		long cost = qty * highest_buy->price;
+		long cost = (long)(qty * highest_buy->price);
 		long fee = (long)round(FEE_AMOUNT * cost);
 		total_fees += fee;
 
@@ -402,6 +402,7 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 	new_trader->id = index;
 	new_trader->position_qty = calloc(sizeof(int), sizeof(int) * num_products);
 	new_trader->position_cost = calloc(sizeof(int), sizeof(int) * num_products);
+	new_trader->active = 1;
 	new_trader->current_order_id = 0;
 	if (new_trader->pid == -1) {
 		printf("%s Fork failed\n", LOG_PREFIX);
