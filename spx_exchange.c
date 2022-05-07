@@ -128,7 +128,7 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		kill(cheapest_sell->trader->pid, SIGUSR1);
 		close(fd);
 		cheapest_sell->trader->position_qty[pos_index] -= qty;
-		cheapest_sell->trader->position_cost[pos_index] -= cost;
+		cheapest_sell->trader->position_cost[pos_index] += cost;
 
 		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
 		fd = open(path, O_WRONLY);
@@ -138,7 +138,7 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		kill(new_order->trader->pid, SIGUSR1);
 		close(fd);
 		new_order->trader->position_qty[pos_index] += qty;
-		new_order->trader->position_cost[pos_index] += cost;
+		new_order->trader->position_cost[pos_index] -= (cost + fee);
 
 		if (cheapest_sell->qty == 0) {
 			orders = cancel_order(cheapest_sell, orders, pos_index);
@@ -156,7 +156,9 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		orders = realloc(orders, sizeof(struct order) * (cursor + 2));
 		orders[cursor] = new_order;
 		orders[cursor + 1] = NULL;
+		return orders;
 	}
+	free(new_order);
 	return orders;
 }
 
@@ -219,7 +221,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		kill(highest_buy->trader->pid, SIGUSR1);
 		close(fd);
 		highest_buy->trader->position_qty[pos_index] += qty;
-		highest_buy->trader->position_cost[pos_index] += cost;
+		highest_buy->trader->position_cost[pos_index] -= cost;
 
 		// inform initiating trader that their order has been fulfilled
 		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
@@ -229,7 +231,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		kill(new_order->trader->pid, SIGUSR1);
 		close(fd);
 		new_order->trader->position_qty[pos_index] -= qty;
-		new_order->trader->position_cost[pos_index] -= cost;
+		new_order->trader->position_cost[pos_index] += cost - fee;
 
 		if (highest_buy->qty == 0) {
 			orders = cancel_order(highest_buy, orders, pos_index);
@@ -247,7 +249,9 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		orders = realloc(orders, sizeof(struct order) * (cursor + 2));
 		orders[cursor] = new_order;
 		orders[cursor + 1] = NULL;
+		return orders;
 	}
+	free(new_order);
 	return orders;
 }
 //
