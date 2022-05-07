@@ -80,12 +80,15 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 	if (type == AMEND || type == CANCEL) {
 
 		int cursor = 0;
-		while (orders[cursor]->trader != new_order->trader && orders[cursor]->order_id != new_order->order_id) {
+		while (orders[cursor] != NULL) {
+			if (orders[cursor]->trader == new_order->trader && orders[cursor]->order_id == new_order->order_id) {
+				new_order->type = orders[cursor]->type;
+				printf("%s", orders[cursor]->product);
+				memcpy(new_order->product, orders[cursor]->product, PRODUCT_LENGTH);
+				break;
+			}
 			cursor++;
 		}
-		new_order->type = orders[cursor]->type;
-		printf("%s", orders[cursor]->product);
-		memcpy(new_order->product, orders[cursor]->product, PRODUCT_LENGTH);
 	}
 
 	char* type_str;
