@@ -51,7 +51,7 @@ struct order** cancel_order(struct order* new_order, struct order** orders, int 
 		orders[index] = orders[index + 1];
 		index++;
 	}
-	orders = realloc(orders, sizeof(struct order) * (index - 1));
+	orders = realloc(orders, sizeof(struct order) * index);
 	return orders;
 }
 
@@ -276,7 +276,6 @@ struct order** amend_order(struct order* new_order, struct order** orders, int p
 	}
 	return orders;
 }
-
 
 // Reads the products file and returns a list of the product's names
 char** read_products_file(char* fp) {
@@ -551,6 +550,10 @@ struct trader** disconnect(struct trader** traders, struct order** orders, char*
 		return NULL;
 	}
 	return traders;
+}
+
+int validate_args(char** args) {
+
 }
 
 int main(int argc, char **argv) {
