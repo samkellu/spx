@@ -22,6 +22,7 @@ struct trader {
   int trader_fd;
   int* position_qty;
   int* position_cost;
+  int active;
 };
 
 struct order {

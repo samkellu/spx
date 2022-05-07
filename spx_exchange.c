@@ -490,37 +490,25 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 }
 
 struct trader** disconnect(struct trader** traders, struct order** orders, char** products, int argc) {
-	int valid = 0;
 	int cursor = 0;
+	int count_active = 0;
 
 	while (traders[cursor] != NULL) {
 		if (disconnect_trader == traders[cursor]->pid) {
 			printf("%s Trader %d disconnected\n", LOG_PREFIX, traders[cursor]->id);
-			free(traders[cursor]->position_qty);
-			free(traders[cursor]->position_cost);
-			free(traders[cursor]);
-			valid = 1;
-		}
-		if (valid) {
-			traders[cursor] = traders[cursor + 1];
+			traders[cursor]->active = 0;
 		}
 		cursor++;
+		if (traders[cursor]->active) {
+			count_active++;
+		}
 	}
-
-	if (valid) {
-		// printf("%d", cursor);
-		// fflush(stdout);
-		traders = realloc(traders, cursor * sizeof(struct trader));
-		traders[cursor] = NULL;
-		// check the validitiy of this pls
-	}
-
 	disconnect_trader = -1;
 
-	if (cursor == 1) {
+	if (count_active == 0) {
 		printf("%s Trading completed\n", LOG_PREFIX);
 		printf("%s Exchange fees collected: $%d\n", LOG_PREFIX, total_fees);
-		int cursor = 0;
+
 		while (orders[cursor] != NULL) {
 			free(orders[cursor++]);
 		}
@@ -534,19 +522,22 @@ struct trader** disconnect(struct trader** traders, struct order** orders, char*
 			unlink(path);
 			cursor++;
 		}
+
 		cursor = 0;
 		while (traders[cursor] != NULL) {
 			free(traders[cursor]->position_qty);
 			free(traders[cursor]->position_cost);
-			free(traders[cursor]);
+			free(traders[cursor++]);
 			cursor++;
 		}
 		free(traders);
+
 		int limit = strtol(products[0], NULL, 10);
 		for (int index = 0; index <= limit; index++) {
 			free(products[index]);
 		}
 		free(products);
+		
 		return NULL;
 	}
 	return traders;
