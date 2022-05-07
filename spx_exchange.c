@@ -131,6 +131,9 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			close(fd);
 
 		} else {
+			 
+			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->order_id);
+			int fd = open(path, O_WRONLY);
 
 			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
 			write_pipe(fd, msg);
@@ -205,8 +208,8 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 		fee);
 
 		char msg[MAX_INPUT];
+		char path[PATH_LENGTH];
 		if (highest_buy->qty == 0) {
-			char path[PATH_LENGTH];
 			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, highest_buy->order_id);
 			int fd = open(path, O_WRONLY);
 
@@ -217,8 +220,12 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 
 			orders = cancel_order(highest_buy, orders);
 			close(fd);
+
 		} else {
 
+			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->order_id);
+			int fd = open(path, O_WRONLY);
+			// inform initiating trader that their order has been fulfilled
 			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
 			write_pipe(fd, msg);
 			kill(new_order->trader->pid, SIGUSR1);
