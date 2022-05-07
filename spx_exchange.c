@@ -60,7 +60,9 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 	struct order* new_order = malloc(sizeof(struct order));
 	new_order->type = type;
 	new_order->order_id = order_id;
-	memcpy(new_order->product, product, PRODUCT_LENGTH);
+	if (product != NULL) {
+		memcpy(new_order->product, product, PRODUCT_LENGTH);
+	}
 	new_order->qty = qty;
 	new_order->price = price;
 	new_order->trader = trader;
@@ -729,7 +731,7 @@ int main(int argc, char **argv) {
 						qty = strtol(arg_array[2], NULL, 10);
 						price = strtol(arg_array[3], NULL, 10);
 						product_valid = 1;
-						id_valid = (order_id == traders[cursor]->current_order_id);
+						id_valid = (order_id < traders[cursor]->current_order_id);
 						break;
 
 					case 2:
@@ -745,7 +747,6 @@ int main(int argc, char **argv) {
 					qty_valid = (qty > 0 && qty < 1000000);
 					price_valid = (price > 0 && price < 1000000);
 				}
-				printf("%d %d %d %d %d\n", valid_num_args, id_valid, product_valid, qty_valid, price_valid);
 				char* msg = malloc(MAX_INPUT);
 				if (id_valid && product_valid && qty_valid && price_valid) {
 					// Inform the trader that their order was accept
