@@ -746,7 +746,7 @@ int main(int argc, char **argv) {
 				}
 
 
-				if (valid_num_args == 5 || valid_num_args == 3) {
+				if (valid_num_args == 5 || valid_num_args == 4) {
 					qty_valid = (qty > 0 && qty < 1000000);
 					price_valid = (price > 0 && price < 1000000);
 				}
