@@ -667,6 +667,7 @@ int main(int argc, char **argv) {
 
 			if (disconnect_trader != -1) {
 				if (disconnect(traders, orders, products, argc)) {
+					printf("bye?");
 					return 0;
 				}
 			}
