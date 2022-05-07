@@ -106,7 +106,7 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 
 	int index = 0;
 	while (traders[index] != NULL) {
-		if (traders[index] != new_order->trader) {
+		if (traders[index] != new_order->trader && traders[index]->active) {
 			write_pipe(traders[index]->exchange_fd, market_msg);
 			kill(traders[index]->pid, SIGUSR1);
 		}
@@ -684,7 +684,6 @@ int main(int argc, char **argv) {
 					cursor++;
 				}
 				read_trader = -1;
-				printf("here");
 
 				if (traders[cursor] == NULL) {
 					continue;
@@ -731,12 +730,14 @@ int main(int argc, char **argv) {
 					}
 
 					free(arg_array);
-					// Inform the trader that their order was invalid
-					char* msg = malloc(MAX_INPUT);
-					sprintf(msg, "INVALID;");
-					write_pipe(traders[cursor]->exchange_fd, msg);
-					kill(traders[cursor]->pid, SIGUSR1);
-					free(msg);
+					if (traders[cursor]->active) {
+						// Inform the trader that their order was invalid
+						char* msg = malloc(MAX_INPUT);
+						sprintf(msg, "INVALID;");
+						write_pipe(traders[cursor]->exchange_fd, msg);
+						kill(traders[cursor]->pid, SIGUSR1);
+						free(msg);
+					}
 					continue;
 				}
 
@@ -798,9 +799,11 @@ int main(int argc, char **argv) {
 
 				if (id_valid && product_valid && qty_valid && price_valid) {
 					// Inform the trader that their order was accept
-					write_pipe(traders[cursor]->exchange_fd, msg);
-					kill(traders[cursor]->pid, SIGUSR1);
-					free(msg);
+					if (traders[cursor]->active) {
+						write_pipe(traders[cursor]->exchange_fd, msg);
+						kill(traders[cursor]->pid, SIGUSR1);
+						free(msg);
+					}
 
 					if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
 						traders[cursor]->current_order_id++;
@@ -821,11 +824,13 @@ int main(int argc, char **argv) {
 					generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
 
 				} else {
-					// Inform the trader that their order was invalid
-					sprintf(msg, "INVALID;");
-					write_pipe(traders[cursor]->exchange_fd, msg);
-					kill(traders[cursor]->pid, SIGUSR1);
-					free(msg);
+					if (traders[cursor]->active) {
+						// Inform the trader that their order was invalid
+						sprintf(msg, "INVALID;");
+						write_pipe(traders[cursor]->exchange_fd, msg);
+						kill(traders[cursor]->pid, SIGUSR1);
+						free(msg);
+					}
 				}
 
 				cursor = 0;
