@@ -667,7 +667,6 @@ int main(int argc, char **argv) {
 
 			if (disconnect_trader != -1) {
 				if (disconnect(traders, orders, products, argc)) {
-					printf("bye?");
 					return 0;
 				}
 			}
@@ -678,17 +677,17 @@ int main(int argc, char **argv) {
 
 				int cursor = 0;
 				while (traders[cursor] != NULL) {
-					if (traders[cursor]->pid == read_trader) {
+					if (traders[cursor]->pid == read_trader && traders[cursor]->active) {
 						arg_array = take_input(traders[cursor]->trader_fd);
 						break;
 					}
 					cursor++;
 				}
+				read_trader = -1;
 
 				if (traders[cursor] == NULL) {
 					continue;
 				}
-				read_trader = -1;
 
 				printf("%s [T%d] Parsing command: <", LOG_PREFIX, traders[cursor]->id);
 
