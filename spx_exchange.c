@@ -46,7 +46,6 @@ struct order** cancel_order(struct order* new_order, struct order** orders) {
 	while (orders[index] != new_order) {
 		index++;
 	}
-	printf("cancelling %d\n", orders[index]->order_id);
 	free(orders[index]);
 	while (orders[index] != NULL) {
 		orders[index] = orders[index + 1];
@@ -103,13 +102,11 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			qty = cheapest_sell->qty;
 			new_order->qty -= cheapest_sell->qty;
 			cheapest_sell->qty = 0;
-			printf("qty<=%d",qty);
 
 		} else {
 			cheapest_sell->qty -= new_order->qty;
 			qty = new_order->qty;
 			new_order->qty = 0;
-			printf("qty>%d",qty);
 		}
 
 		int cost = qty * cheapest_sell->price;
@@ -127,9 +124,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 
 			char msg[MAX_INPUT];
 			snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->order_id, cheapest_sell->qty);
-			printf("cancelled %d\n", cheapest_sell->order_id);
 			orders = cancel_order(cheapest_sell, orders);
-			printf("cancelled %d?\n", cheapest_sell->order_id);
 
 			write_pipe(fd, msg);
 			close(fd);
@@ -185,13 +180,11 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 			qty = highest_buy->qty;
 			new_order->qty -= highest_buy->qty;
 			highest_buy->qty = 0;
-			printf("qty<=%d",qty);
 
 		} else {
 			highest_buy->qty -= new_order->qty;
 			qty = new_order->qty;
 			new_order->qty = 0;
-			printf("qty>%d",qty);
 
 		}
 
@@ -210,9 +203,7 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 
 			char msg[MAX_INPUT];
 			snprintf(msg, MAX_INPUT, "FILL %d %d;", highest_buy->order_id, highest_buy->qty);
-			printf("cancelled %d\n", highest_buy->order_id);
 			orders = cancel_order(highest_buy, orders);
-			printf("cancelled %d?\n", highest_buy->order_id);
 
 			write_pipe(fd, msg);
 			close(fd);
