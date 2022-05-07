@@ -120,29 +120,25 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 		char msg[MAX_INPUT];
 		char path[PATH_LENGTH];
 
+		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, cheapest_sell->order_id);
+		int fd = open(path, O_WRONLY);
+		// Inform trader that their order has been filled
+		snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->order_id, qty);
+		write_pipe(fd, msg);
+		kill(cheapest_sell->trader->pid, SIGUSR1);
+		close(fd);
+
+		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->order_id);
+		fd = open(path, O_WRONLY);
+		// Inform initiating trader that their order has been filled
+		snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
+		write_pipe(fd, msg);
+		kill(new_order->trader->pid, SIGUSR1);
+		close(fd);
+
 		if (cheapest_sell->qty == 0) {
-			
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, cheapest_sell->order_id);
-			int fd = open(path, O_WRONLY);
-			// Inform trader that their order has been filled
-			snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->order_id, qty);
-			write_pipe(fd, msg);
-			kill(cheapest_sell->trader->pid, SIGUSR1);
-
 			orders = cancel_order(cheapest_sell, orders);
-			close(fd);
-
 		} else {
-
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->order_id);
-			int fd = open(path, O_WRONLY);
-			// Inform initiating trader that their order has been filled
-			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
-			write_pipe(fd, msg);
-			kill(new_order->trader->pid, SIGUSR1);
-		}
-
-		if (new_order->qty == 0) {
 			break;
 		}
 	}
@@ -211,30 +207,25 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 
 		char msg[MAX_INPUT];
 		char path[PATH_LENGTH];
+		// Inform trader that their order has been filled
+		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, highest_buy->order_id);
+		int fd = open(path, O_WRONLY);
+		snprintf(msg, MAX_INPUT, "FILL %d %d;", highest_buy->order_id, qty);
+		write_pipe(fd, msg);
+		kill(highest_buy->trader->pid, SIGUSR1);
+		close(fd);
+
+		// inform initiating trader that their order has been fulfilled
+		snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->order_id);
+		fd = open(path, O_WRONLY);
+		snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
+		write_pipe(fd, msg);
+		kill(new_order->trader->pid, SIGUSR1);
+		close(fd);
 
 		if (highest_buy->qty == 0) {
-
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, highest_buy->order_id);
-			int fd = open(path, O_WRONLY);
-			// Inform traders that their order has been filled
-			snprintf(msg, MAX_INPUT, "FILL %d %d;", highest_buy->order_id, qty);
-			write_pipe(fd, msg);
-			kill(highest_buy->trader->pid, SIGUSR1);
-
 			orders = cancel_order(highest_buy, orders);
-			close(fd);
-
 		} else {
-
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->order_id);
-			int fd = open(path, O_WRONLY);
-			// inform initiating trader that their order has been fulfilled
-			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
-			write_pipe(fd, msg);
-			kill(new_order->trader->pid, SIGUSR1);
-		}
-
-		if (new_order->qty == 0) {
 			break;
 		}
 	}
