@@ -552,10 +552,6 @@ struct trader** disconnect(struct trader** traders, struct order** orders, char*
 	return traders;
 }
 
-int validate_args(char** args) {
-
-}
-
 int main(int argc, char **argv) {
 	if (argc > 1) {
 		printf("%s Starting\n", LOG_PREFIX);
