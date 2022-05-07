@@ -694,6 +694,7 @@ int main(int argc, char **argv) {
 					// Inform the trader that their order was invalid
 					char* msg = malloc(MAX_INPUT);
 					sprintf(msg, "INVALID;");
+					printf("here");
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
 					free(msg);
@@ -790,6 +791,7 @@ int main(int argc, char **argv) {
 
 				} else {
 					// Inform the trader that their order was invalid
+					printf("there");
 					sprintf(msg, "INVALID;");
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
