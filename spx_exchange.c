@@ -783,6 +783,7 @@ int main(int argc, char **argv) {
 								id_valid = 1;
 								break;
 							}
+							index++;
 						}
 				}
 
