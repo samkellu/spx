@@ -14,15 +14,6 @@ enum type {
   CANCEL=3
 };
 
-struct order {
-  int type;
-  int order_id;
-  char product[PRODUCT_LENGTH];
-  int qty;
-  int price;
-  int trader_id;
-};
-
 struct trader {
   int id;
   int current_order_id;
@@ -31,6 +22,15 @@ struct trader {
   int trader_fd;
   int* position_qty;
   int* position_cost;
+};
+
+struct order {
+  int type;
+  int order_id;
+  char product[PRODUCT_LENGTH];
+  int qty;
+  int price;
+  struct trader* trader;
 };
 
 struct level {

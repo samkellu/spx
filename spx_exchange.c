@@ -43,7 +43,7 @@ int write_pipe(int fd, char* message) {
 struct order** cancel_order(struct order* new_order, struct order** orders) {
 
 	int index = 0;
-	while (orders[index]->order_id != new_order->order_id && orders[index]->trader_id != new_order->trader_id) {
+	while (orders[index]->order_id != new_order->order_id && orders[index]->trader != new_order->trader) {
 		index++;
 	}
 
@@ -56,7 +56,7 @@ struct order** cancel_order(struct order* new_order, struct order** orders) {
 	return orders;
 }
 
-struct order** create_order(int type, int trader_id, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**), struct order** orders) {
+struct order** create_order(int type, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**), struct order** orders) {
  // Adding order to the exchange's array of orders/ memory management stuff
 	struct order* new_order = malloc(sizeof(struct order));
 	new_order->type = type;
@@ -64,7 +64,7 @@ struct order** create_order(int type, int trader_id, int order_id, char product[
 	memcpy(new_order->product, product, PRODUCT_LENGTH);
 	new_order->qty = qty;
 	new_order->price = price;
-	new_order->trader_id = trader_id;
+	new_order->trader = trader;
 
 	orders = operation(new_order, orders);
 
@@ -83,7 +83,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			// Booleans to check if the current order is compatible with the new order
 			int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
 			int price_valid = (orders[current_order]->price <= new_order->price); // +++ check for equality in the spec
-			int trader_valid = (orders[current_order]->trader_id != new_order->trader_id);
+			int trader_valid = (orders[current_order]->trader != new_order->trader);
 
 			if (trader_valid && product_valid && price_valid && orders[current_order]->type == SELL) {
 				if (cheapest_sell == NULL || orders[current_order]->price < cheapest_sell->price) {
@@ -114,7 +114,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 		total_fees += fee;
 
 		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.\n", LOG_PREFIX, cheapest_sell->order_id,\
-		cheapest_sell->trader_id, new_order->order_id, new_order->trader_id, cost,\
+		cheapest_sell->trader->id, new_order->order_id, new_order->trader->id, cost,\
 		fee);
 
 		if (cheapest_sell->qty == 0) {
@@ -160,7 +160,7 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 			// Booleans to check if the current order is compatible with the new order
 			int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
 			int price_valid = (orders[current_order]->price >= new_order->price); // +++ check for equality in the spec
-			int trader_valid = (orders[current_order]->trader_id != new_order->trader_id);
+			int trader_valid = (orders[current_order]->trader != new_order->trader);
 
 			if (trader_valid && product_valid && price_valid && orders[current_order]->type == BUY) {
 				if (highest_buy == NULL || orders[current_order]->price > highest_buy->price) {
@@ -191,7 +191,7 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 		total_fees += fee;
 
 		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.\n", LOG_PREFIX, highest_buy->order_id,\
-		highest_buy->trader_id, new_order->order_id, new_order->trader_id, cost,\
+		highest_buy->trader->id, new_order->order_id, new_order->trader->id, cost,\
 		fee);
 
 		if (highest_buy->qty == 0) {
@@ -655,6 +655,7 @@ int main(int argc, char **argv) {
 					free(msg);
 					continue;
 				}
+
 				int qty;
 				int price;
 				int order_id;
@@ -702,16 +703,16 @@ int main(int argc, char **argv) {
 				if (id_valid && product_valid && qty_valid && price_valid) {
 
 					if (strcmp(arg_array[0], "BUY") == 0) {
-						orders = create_order(BUY, traders[cursor]->id, order_id, arg_array[2], qty, price, &buy_order, orders);
+						orders = create_order(BUY, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders);
 
 					} else if (strcmp(arg_array[0], "SELL") == 0) {
-						orders = create_order(SELL, traders[cursor]->id, order_id, arg_array[2], qty, price, &sell_order, orders);
+						orders = create_order(SELL, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders);
 
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
 						printf("amend");
 
 					} else if (strcmp(arg_array[0], "CANCEL") == 0) {
-						orders = create_order(CANCEL, traders[cursor]->id, order_id, NULL, 0, 0, &cancel_order, orders);
+						orders = create_order(CANCEL, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders);
 					}
 					sprintf(msg, "ACCEPTED %s;", arg_array[1]);
 					traders[cursor]->current_order_id++;
