@@ -134,6 +134,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			break;
 		}
 	}
+
 	if (new_order->qty != 0) {
 		int cursor = 0;
 		while (orders[cursor] != NULL) {
@@ -213,6 +214,7 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 			break;
 		}
 	}
+
 	if (new_order->qty != 0) {
 		int cursor = 0;
 		while (orders[cursor] != NULL) {
@@ -647,11 +649,9 @@ int main(int argc, char **argv) {
 					}
 
 					free(arg_array);
-
+					// Inform the trader that their order was invalid
 					char* msg = malloc(MAX_INPUT);
 					sprintf(msg, "INVALID;");
-
-					// Inform the trader that their order was accepted
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
 					free(msg);
@@ -703,6 +703,12 @@ int main(int argc, char **argv) {
 
 				char* msg = malloc(MAX_INPUT);
 				if (id_valid && product_valid && qty_valid && price_valid) {
+					// Inform the trader that their order was accept
+					sprintf(msg, "ACCEPTED %s;", arg_array[1]);
+					traders[cursor]->current_order_id++;
+					write_pipe(traders[cursor]->exchange_fd, msg);
+					kill(traders[cursor]->pid, SIGUSR1);
+					free(msg);
 
 					if (strcmp(arg_array[0], "BUY") == 0) {
 						orders = create_order(BUY, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders);
@@ -716,9 +722,6 @@ int main(int argc, char **argv) {
 					} else if (strcmp(arg_array[0], "CANCEL") == 0) {
 						orders = create_order(CANCEL, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders);
 					}
-					sprintf(msg, "ACCEPTED %s;", arg_array[1]);
-					traders[cursor]->current_order_id++;
-
 					// Generating and displaying the orderbook for the exchange
 					generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
 
@@ -736,13 +739,13 @@ int main(int argc, char **argv) {
 					free(market_msg);
 
 				} else {
+					// Inform the trader that their order was invalid
 					sprintf(msg, "INVALID;");
+					write_pipe(traders[cursor]->exchange_fd, msg);
+					kill(traders[cursor]->pid, SIGUSR1);
+					free(msg);
 				}
 
-				// Inform the trader that their order was accepted
-				write_pipe(traders[cursor]->exchange_fd, msg);
-				kill(traders[cursor]->pid, SIGUSR1);
-				free(msg);
 
 				cursor = 0;
 				while (arg_array[cursor] != NULL) {
