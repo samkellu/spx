@@ -554,7 +554,6 @@ int disconnect(struct trader** traders, struct order** orders, char** products, 
 		cursor++;
 	}
 	disconnect_trader = -1;
-	printf("active %d", count_active);
 
 	if (count_active == 0) {
 		printf("%s Trading completed\n", LOG_PREFIX);
@@ -805,7 +804,7 @@ int main(int argc, char **argv) {
 					if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
 						traders[cursor]->current_order_id++;
 					}
-
+					printf("working");
 					if (strcmp(arg_array[0], "BUY") == 0) {
 						orders = create_order(BUY, product_index, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders, traders);
 
