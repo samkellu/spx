@@ -711,12 +711,14 @@ int main(int argc, char **argv) {
 				int price_valid = 0;
 				int product_index = 0;
 
+				char* msg = malloc(MAX_INPUT);
 				order_id = strtol(arg_array[1], NULL, 10);
 				switch (valid_num_args) {
 					case 5: // case for SELL and BUY orders
 						qty = strtol(arg_array[3], NULL, 10);
 						price = strtol(arg_array[4], NULL, 10);
 
+						sprintf(msg, "ACCEPTED %s;", arg_array[1]);
 						for (int product = 1; product <= strtol(products[0], NULL, 10); product++) {
 							if (strcmp(products[product], arg_array[2]) == 0) {
 								product_valid = 1;
@@ -732,6 +734,7 @@ int main(int argc, char **argv) {
 						price = strtol(arg_array[3], NULL, 10);
 						product_valid = 1;
 						id_valid = (order_id < traders[cursor]->current_order_id);
+						sprintf(msg, "AMENDED %s;", arg_array[1]);
 						break;
 
 					case 2:
@@ -739,6 +742,7 @@ int main(int argc, char **argv) {
 						qty_valid = 1;
 						price_valid = 1;
 						id_valid = (order_id < traders[cursor]->current_order_id);
+						sprintf(msg, "CANCELLED %s;", arg_array[1]);
 						break;
 				}
 
@@ -747,10 +751,8 @@ int main(int argc, char **argv) {
 					qty_valid = (qty > 0 && qty < 1000000);
 					price_valid = (price > 0 && price < 1000000);
 				}
-				char* msg = malloc(MAX_INPUT);
 				if (id_valid && product_valid && qty_valid && price_valid) {
 					// Inform the trader that their order was accept
-					sprintf(msg, "ACCEPTED %s;", arg_array[1]);
 					traders[cursor]->current_order_id++;
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
