@@ -709,6 +709,7 @@ int main(int argc, char **argv) {
 				int price_valid = 0;
 				int product_index = 0;
 
+				order_id = strtol(arg_array[1], NULL, 10);
 				switch (valid_num_args) {
 					case 5: // case for SELL and BUY orders
 						qty = strtol(arg_array[3], NULL, 10);
@@ -718,6 +719,7 @@ int main(int argc, char **argv) {
 							if (strcmp(products[product], arg_array[2]) == 0) {
 								product_valid = 1;
 								product_index = product - 1;
+								id_valid = (order_id == traders[cursor]->current_order_id);
 								break;
 							}
 						}
@@ -727,17 +729,17 @@ int main(int argc, char **argv) {
 						qty = strtol(arg_array[2], NULL, 10);
 						price = strtol(arg_array[3], NULL, 10);
 						product_valid = 1;
+						id_valid = (order_id == traders[cursor]->current_order_id);
 						break;
 
 					case 2:
 						product_valid = 1;
 						qty_valid = 1;
 						price_valid = 1;
+						id_valid = (order_id < traders[cursor]->current_order_id);
 						break;
 				}
 
-				order_id = strtol(arg_array[1], NULL, 10);
-				id_valid = (order_id == traders[cursor]->current_order_id);
 
 				if (valid_num_args == 5 || valid_num_args == 3) {
 					qty_valid = (qty > 0 && qty < 1000000);
