@@ -728,7 +728,7 @@ int main(int argc, char **argv) {
 						}
 						break;
 
-					case 3: // case for AMEND orders
+					case 4: // case for AMEND orders
 						qty = strtol(arg_array[2], NULL, 10);
 						price = strtol(arg_array[3], NULL, 10);
 						product_valid = 1;
@@ -750,7 +750,7 @@ int main(int argc, char **argv) {
 					qty_valid = (qty > 0 && qty < 1000000);
 					price_valid = (price > 0 && price < 1000000);
 				}
-				printf("val %d %d %d %d\n",id_valid, product_valid, qty_valid, price_valid);
+				// printf("val %d %d %d %d\n",id_valid, product_valid, qty_valid, price_valid);
 				if (id_valid && product_valid && qty_valid && price_valid) {
 					// Inform the trader that their order was accept
 					write_pipe(traders[cursor]->exchange_fd, msg);
