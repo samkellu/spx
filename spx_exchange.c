@@ -743,7 +743,7 @@ int main(int argc, char **argv) {
 				}
 				if (id_valid && product_valid && qty_valid && price_valid) {
 					// Inform the trader that their order was accept
-					if (arg_array[0] == SELL || arg_array[0] == BUY) {
+					if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
 						traders[cursor]->current_order_id++;
 					}
 					write_pipe(traders[cursor]->exchange_fd, msg);
