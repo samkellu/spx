@@ -65,7 +65,7 @@ struct order** cancel_order(struct order* new_order, struct order** orders, int 
 	return orders;
 }
 
-struct order** create_order(int type, int pos_index, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**, int), struct order** orders) {
+struct order** create_order(int type, int pos_index, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**, int), struct order** orders, struct trader** traders) {
  // Adding order to the exchange's array of orders/ memory management stuff
 	struct order* new_order = malloc(sizeof(struct order));
 	new_order->type = type;
@@ -76,6 +76,41 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 	new_order->qty = qty;
 	new_order->price = price;
 	new_order->trader = trader;
+
+
+	if (type == AMEND || type == CANCEL) {
+
+		int cursor = 0;
+		while (orders[cursor]->trader != new_order->trader && orders[cursor]->order_id != new_order->order_id) {
+			cursor++;
+		}
+		new_order->type = orders[cursor]->type;
+		memcpy(new_order->product, orders[cursor]->product, PRODUCT_LENGTH);
+	}
+
+	char* type_str = malloc(MAX_INPUT);
+	switch (type) {
+		case 0:
+			type_str = "BUY";
+			break;
+		case 1:
+			type_str = "SELL";
+			break;
+	}
+
+
+	char* market_msg = malloc(MAX_INPUT);
+	sprintf(market_msg, "MARKET %s %s %d %d;", type_str, product, qty, price);
+
+	int index = 0;
+	while (traders[index] != NULL) {
+		if (traders[index] != new_order->trader) {
+			write_pipe(traders[index]->exchange_fd, market_msg);
+			kill(traders[index]->pid, SIGUSR1);
+		}
+		index++;
+	}
+	free(market_msg);
 
 	orders = operation(new_order, orders, pos_index);
 
@@ -750,7 +785,7 @@ int main(int argc, char **argv) {
 					qty_valid = (qty > 0 && qty < 1000000);
 					price_valid = (price > 0 && price < 1000000);
 				}
-				// printf("val %d %d %d %d\n",id_valid, product_valid, qty_valid, price_valid);
+
 				if (id_valid && product_valid && qty_valid && price_valid) {
 					// Inform the trader that their order was accept
 					write_pipe(traders[cursor]->exchange_fd, msg);
@@ -759,32 +794,19 @@ int main(int argc, char **argv) {
 
 					if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
 						traders[cursor]->current_order_id++;
-						// get order being cancelled/amended and act accordigly
-						char* market_msg = malloc(MAX_INPUT);
-						sprintf(market_msg, "MARKET %s %s %d %d;", arg_array[0], arg_array[2], qty, price);
-						int index = 0;
-
-						while (traders[index] != NULL) {
-							if (index != cursor) {
-								write_pipe(traders[index]->exchange_fd, market_msg);
-								kill(traders[index]->pid, SIGUSR1);
-							}
-							index++;
-						}
-						free(market_msg);
 					}
 
 					if (strcmp(arg_array[0], "BUY") == 0) {
-						orders = create_order(BUY, product_index, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders);
+						orders = create_order(BUY, product_index, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders, traders);
 
 					} else if (strcmp(arg_array[0], "SELL") == 0) {
-						orders = create_order(SELL, product_index, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders);
+						orders = create_order(SELL, product_index, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders);
 
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
-						printf("amend");
+						orders = create_order(SELL, product_index, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders);
 
 					} else if (strcmp(arg_array[0], "CANCEL") == 0) {
-						orders = create_order(CANCEL, product_index, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders);
+						orders = create_order(CANCEL, product_index, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders);
 					}
 					// Generating and displaying the orderbook for the exchange
 					generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
