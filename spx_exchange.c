@@ -57,7 +57,7 @@ struct order** delete_order(struct order* del_order, struct order** orders) {
 struct order** cancel_order(struct order* new_order, struct order** orders, int pos_index) {
 
 	int index = 0;
-	while (orders[index]->trader != new_order->trader && orders[index]->order_id != new_order->order_id) {
+	while (orders[index]->trader != new_order->trader || orders[index]->order_id != new_order->order_id) {
 		index++;
 	}
 	orders = delete_order(orders[index], orders);
@@ -77,11 +77,10 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 	new_order->price = price;
 	new_order->trader = trader;
 
-
 	if (type == AMEND || type == CANCEL) {
 
 		int cursor = 0;
-		while (orders[cursor]->trader != new_order->trader && orders[cursor]->order_id != new_order->order_id) {
+		while (orders[cursor]->trader != new_order->trader || orders[cursor]->order_id != new_order->order_id) {
 			cursor++;
 		}
 		new_order->type = orders[cursor]->type;
