@@ -113,7 +113,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 		int fee = (int)round(0.01 * cost);
 		total_fees += fee;
 
-		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.", LOG_PREFIX, cheapest_sell->order_id,\
+		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.\n", LOG_PREFIX, cheapest_sell->order_id,\
 		cheapest_sell->trader_id, new_order->order_id, new_order->trader_id, cost,\
 		fee);
 
@@ -190,7 +190,7 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 		int fee = (int)round(0.01 * cost);
 		total_fees += fee;
 
-		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.", LOG_PREFIX, highest_buy->order_id,\
+		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%d, fee: $%d.\n", LOG_PREFIX, highest_buy->order_id,\
 		highest_buy->trader_id, new_order->order_id, new_order->trader_id, cost,\
 		fee);
 
