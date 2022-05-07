@@ -684,6 +684,7 @@ int main(int argc, char **argv) {
 					cursor++;
 				}
 				read_trader = -1;
+				printf("here");
 
 				if (traders[cursor] == NULL) {
 					continue;
@@ -804,7 +805,6 @@ int main(int argc, char **argv) {
 					if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
 						traders[cursor]->current_order_id++;
 					}
-					printf("working");
 					if (strcmp(arg_array[0], "BUY") == 0) {
 						orders = create_order(BUY, product_index, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders, traders);
 
