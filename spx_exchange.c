@@ -291,9 +291,10 @@ struct level* orderbook_helper(struct order* current_order, int* num_levels, int
 	int valid = 1;
 
 	for (int level_cursor = 0; level_cursor < *num_levels; level_cursor++) {
-		if (current_order->price == levels[level_cursor].price && current_order->type == levels[level_cursor].type && current_order->qty == levels[level_cursor].qty) {
+		if (current_order->price == levels[level_cursor].price && current_order->type == levels[level_cursor].type) {
 			valid = 0;
 			levels[level_cursor].num++;
+			levels[level_cursor].qty += current_order->qty;
 			break;
 		}
 	}
