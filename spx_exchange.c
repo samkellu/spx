@@ -43,7 +43,7 @@ int write_pipe(int fd, char* message) {
 struct order** cancel_order(struct order* new_order, struct order** orders, int pos_index) {
 
 	int index = 0;
-	while (orders[index] != new_order) {
+	while (orders[index]->trader != new_order->trader && orders[index]->order_id != new_order->order_id) {
 		index++;
 	}
 	free(orders[index]);
