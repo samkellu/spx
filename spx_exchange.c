@@ -554,6 +554,7 @@ int disconnect(struct trader** traders, struct order** orders, char** products, 
 		cursor++;
 	}
 	disconnect_trader = -1;
+	printf("active %d", count_active);
 
 	if (count_active == 0) {
 		printf("%s Trading completed\n", LOG_PREFIX);
@@ -605,7 +606,7 @@ int main(int argc, char **argv) {
 		}
 
 		struct trader** traders = malloc(sizeof(struct trader) * (argc - 1));
-		traders[argc - 1] = NULL;
+		traders[argc - 2] = NULL;
 
 		struct sigaction sig_act;
 
