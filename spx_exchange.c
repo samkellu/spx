@@ -514,6 +514,7 @@ int disconnect(struct trader** traders, struct order** orders, char** products, 
 			free(orders[cursor++]);
 		}
 		free(orders);
+		
 		cursor = 0;
 		while (cursor < argc - 2) {
 			char path[PATH_LENGTH];
@@ -529,7 +530,6 @@ int disconnect(struct trader** traders, struct order** orders, char** products, 
 			free(traders[cursor]->position_qty);
 			free(traders[cursor]->position_cost);
 			free(traders[cursor++]);
-			cursor++;
 		}
 		free(traders);
 
@@ -613,7 +613,6 @@ int main(int argc, char **argv) {
 		orders[0] = NULL;
 
 		int running = 1;
-		// int counter = 0;
 		while (running) {
 
 			if (disconnect_trader != -1) {
@@ -797,7 +796,6 @@ int main(int argc, char **argv) {
 			}
 		}
 	} else {
-
 		printf("Not enough arguments"); //+++ check  messaging and arg lengths
 		return 1;
 	}
