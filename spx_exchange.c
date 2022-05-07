@@ -87,6 +87,7 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			}
 			current_order++;
 		}
+		current_order--;
 
 		if (cheapest_sell == NULL) {
 			break;
@@ -163,6 +164,7 @@ struct order** sell_order(struct order* new_order, struct order** orders) {
 			}
 			current_order++;
 		}
+		current_order--;
 
 		if (highest_buy == NULL) {
 			break;
