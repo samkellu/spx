@@ -498,10 +498,10 @@ struct trader** disconnect(struct trader** traders, struct order** orders, char*
 			printf("%s Trader %d disconnected\n", LOG_PREFIX, traders[cursor]->id);
 			traders[cursor]->active = 0;
 		}
-		cursor++;
 		if (traders[cursor]->active) {
 			count_active++;
 		}
+		cursor++;
 	}
 	disconnect_trader = -1;
 
