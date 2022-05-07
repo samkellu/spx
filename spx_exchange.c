@@ -103,10 +103,13 @@ struct order** buy_order(struct order* new_order, struct order** orders) {
 			qty = cheapest_sell->qty;
 			new_order->qty -= cheapest_sell->qty;
 			cheapest_sell->qty = 0;
+			printf("qty<=%d",qty);
+
 		} else {
 			cheapest_sell->qty -= new_order->qty;
 			qty = new_order->qty;
 			new_order->qty = 0;
+			printf("qty>%d",qty);
 		}
 
 		int cost = qty * cheapest_sell->price;
