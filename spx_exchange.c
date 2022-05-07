@@ -153,12 +153,13 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 			cheapest_sell->qty = 0;
 
 		} else {
+
 			cheapest_sell->qty -= new_order->qty;
 			qty = new_order->qty;
 			new_order->qty = 0;
 		}
 
-		long cost = (long)(qty * cheapest_sell->price);
+		long cost = (long)qty * cheapest_sell->price;
 		long fee = (long)round(FEE_AMOUNT * cost);
 		total_fees += fee;
 
@@ -254,7 +255,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 
 		}
 
-		long cost = (long)(qty * highest_buy->price);
+		long cost = (long)qty * highest_buy->price;
 		long fee = (long)round(FEE_AMOUNT * cost);
 		total_fees += fee;
 

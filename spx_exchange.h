@@ -20,8 +20,8 @@ struct trader {
   pid_t pid;
   int exchange_fd;
   int trader_fd;
-  int* position_qty;
-  int* position_cost;
+  long* position_qty;
+  long* position_cost;
   int active;
 };
 
