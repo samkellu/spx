@@ -98,10 +98,8 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 			break;
 	}
 
-
 	char* market_msg = malloc(MAX_INPUT);
 	sprintf(market_msg, "MARKET %s %s %d %d;", type_str, new_order->product, new_order->qty, new_order->price);
-	free(type_str);
 
 	int index = 0;
 	while (traders[index] != NULL) {
@@ -111,6 +109,7 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 		}
 		index++;
 	}
+	free(type_str);
 	free(market_msg);
 
 	orders = operation(new_order, orders, pos_index);
