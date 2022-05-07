@@ -88,7 +88,7 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 		memcpy(new_order->product, orders[cursor]->product, PRODUCT_LENGTH);
 	}
 
-	char* type_str = malloc(MAX_INPUT);
+	char* type_str;
 	switch (type) {
 		case 0:
 			type_str = "BUY";
@@ -109,7 +109,6 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 		}
 		index++;
 	}
-	free(type_str);
 	free(market_msg);
 
 	orders = operation(new_order, orders, pos_index);
