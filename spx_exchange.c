@@ -537,7 +537,7 @@ struct trader** disconnect(struct trader** traders, struct order** orders, char*
 			free(products[index]);
 		}
 		free(products);
-		
+
 		return NULL;
 	}
 	return traders;
@@ -743,7 +743,9 @@ int main(int argc, char **argv) {
 				}
 				if (id_valid && product_valid && qty_valid && price_valid) {
 					// Inform the trader that their order was accept
-					traders[cursor]->current_order_id++;
+					if (arg_array[0] == SELL || arg_array[0] == BUY) {
+						traders[cursor]->current_order_id++;
+					}
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
 					free(msg);
