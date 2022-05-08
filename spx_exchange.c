@@ -208,7 +208,7 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		if (cheapest_sell->qty == 0) {
 			orders = delete_order(cheapest_sell, orders);
 		} else {
-			if (new_order->qty != 0) {
+			if (new_order->qty == 0) {
 				break;
 			}
 		}
@@ -312,7 +312,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		if (highest_buy->qty == 0) {
 			orders = delete_order(highest_buy, orders);
 		} else {
-			if (new_order->qty != 0) {
+			if (new_order->qty == 0) {
 				break;
 			}
 		}
