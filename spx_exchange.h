@@ -28,7 +28,7 @@ struct trader {
 struct order {
   int type;
   int order_id;
-  char product[PRODUCT_LENGTH];
+  char* product;
   int qty;
   int price;
   struct trader* trader;
