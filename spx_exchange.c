@@ -836,7 +836,7 @@ int main(int argc, char **argv) {
 						orders = create_order(SELL, product_index, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders);
 
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
-						orders = create_order(SELL, product_index, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders);
+						orders = create_order(AMEND, product_index, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders);
 
 					} else if (strcmp(arg_array[0], "CANCEL") == 0) {
 						orders = create_order(CANCEL, product_index, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders);
