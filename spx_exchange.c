@@ -44,13 +44,11 @@ struct order** delete_order(struct order* del_order, struct order** orders) {
 	int index = 0;
 	while (orders[index] != del_order) {
 		index++;
-		printf("d1 %d\n", index);
 
 	}
 	while (orders[index] != NULL) {
 		orders[index] = orders[index + 1];
 		index++;
-		printf("d2 %d\n", index);
 	}
 	orders = realloc(orders, sizeof(struct order*) * index);
 	free(del_order->product);
@@ -66,7 +64,6 @@ struct order** cancel_order(struct order* new_order, struct order** orders, int 
 			break;
 		}
 		index++;
-		printf("can %d\n", index);
 	}
 
 	orders = delete_order(orders[index], orders);
