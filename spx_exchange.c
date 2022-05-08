@@ -139,9 +139,9 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 			// Booleans to check if the current order is compatible with the new order
 			int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
 			int price_valid = (orders[current_order]->price <= new_order->price); // +++ check for equality in the spec
-			int trader_valid = (orders[current_order]->trader != new_order->trader);
-
-			if (trader_valid && product_valid && price_valid && orders[current_order]->type == SELL) {
+			// int trader_valid = (orders[current_order]->trader != new_order->trader);
+// trader_valid &&
+			if ( product_valid && price_valid && orders[current_order]->type == SELL) {
 				if (cheapest_sell == NULL || orders[current_order]->price < cheapest_sell->price) {
 					cheapest_sell = orders[current_order];
 				}
@@ -241,9 +241,9 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 			// Booleans to check if the current order is compatible with the new order
 			int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
 			int price_valid = (orders[current_order]->price >= new_order->price); // +++ check for equality in the spec
-			int trader_valid = (orders[current_order]->trader != new_order->trader);
-
-			if (trader_valid && product_valid && price_valid && orders[current_order]->type == BUY) {
+			// int trader_valid = (orders[current_order]->trader != new_order->trader);
+// trader_valid &&
+			if ( product_valid && price_valid && orders[current_order]->type == BUY) {
 				if (highest_buy == NULL || orders[current_order]->price > highest_buy->price) {
 					highest_buy = orders[current_order];
 				}
@@ -364,7 +364,7 @@ char** read_products_file(char* fp) {
 	while ((file_length - index) > 0) {
 		char* product = (char*) malloc(sizeof(char) * PRODUCT_LENGTH);
 		product = strtok(fgets(product, PRODUCT_LENGTH, file), "\n");
-		if (strcmp(product, "") == 0) {
+		if (product == NULL) {
 			free(product);
 		} else {
 			products[index++] = product;
