@@ -105,8 +105,8 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 	}
 
 	char* market_msg = malloc(MAX_INPUT);
-	// printf("price: %d, qty: %d, product %s", new_order->price, new_order->qty, new_order->product);
-	// fflush(stdout);
+	printf("price: %d, qty: %d, product %s", new_order->price, new_order->qty, new_order->product);
+	fflush(stdout);
 	sprintf(market_msg, "MARKET %s %s %d %d;", type_str, new_order->product, new_order->qty, new_order->price);
 
 	int index = 0;
