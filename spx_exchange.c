@@ -84,13 +84,13 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 			if (orders[cursor]->trader == new_order->trader && orders[cursor]->order_id == new_order->order_id) {
 				new_order->type = orders[cursor]->type;
 				printf("%s", orders[cursor]->product);
+				printf("wow");
 				memcpy(new_order->product, orders[cursor]->product, PRODUCT_LENGTH);
 				break;
 			}
 			cursor++;
 		}
 	}
-
 	char* type_str;
 	switch (type) {
 		case 0:
