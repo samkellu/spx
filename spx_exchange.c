@@ -72,7 +72,7 @@ struct order** cancel_order(struct order* new_order, struct order** orders, int 
 	return orders;
 }
 
-struct order** create_order(int type, int pos_index, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**, int), struct order** orders, struct trader** traders) {
+struct order** create_order(int type, int pos_index, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**, int), struct order** orders, struct trader** traders, int time) {
  // Adding order to the exchange's array of orders/ memory management stuff
 	struct order* new_order = malloc(sizeof(struct order));
 	new_order->type = type;
@@ -81,6 +81,7 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 	new_order->price = price;
 	new_order->trader = trader;
 	new_order->product = malloc(PRODUCT_LENGTH);
+	new_order->time = time;
 
 	if (product != NULL) {
 		memcpy(new_order->product, product, PRODUCT_LENGTH);
@@ -141,8 +142,8 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 			int price_valid = (orders[current_order]->price <= new_order->price); // +++ check for equality in the spec
 			// int trader_valid = (orders[current_order]->trader != new_order->trader);
 // trader_valid &&
-			if ( product_valid && price_valid && orders[current_order]->type == SELL) {
-				if (cheapest_sell == NULL || orders[current_order]->price < cheapest_sell->price) {
+			if (product_valid && price_valid && orders[current_order]->type == SELL) {
+				if (cheapest_sell == NULL || (orders[current_order]->price < cheapest_sell->price && orders[current_order]->time < cheapest_sell->time)) {
 					cheapest_sell = orders[current_order];
 				}
 			}
@@ -244,14 +245,13 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 			int price_valid = (orders[current_order]->price >= new_order->price); // +++ check for equality in the spec
 			// int trader_valid = (orders[current_order]->trader != new_order->trader);
 // trader_valid &&
-			if ( product_valid && price_valid && orders[current_order]->type == BUY) {
-				if (highest_buy == NULL || orders[current_order]->price > highest_buy->price) {
+			if (product_valid && price_valid && orders[current_order]->type == BUY) {
+				if (highest_buy == NULL || (orders[current_order]->price > highest_buy->price && orders[current_order]->time < highest_buy->time)) {
 					highest_buy = orders[current_order];
 				}
 			}
 			current_order++;
 		}
-		current_order--;
 
 		if (highest_buy == NULL) {
 			break;
@@ -281,7 +281,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		char msg[MAX_INPUT];
 		char path[PATH_LENGTH];
 		int fd;
-		
+
 		if (new_order->trader->active) {
 			// inform initiating trader that their order has been fulfilled
 			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
@@ -407,6 +407,7 @@ char** take_input(int fd) {
 			}
 			char_index++;
 		}
+		//+++ do this char by char
 
 		// Allocating memory to store the token
 		arg_array = realloc(arg_array, (args_length + 1) * sizeof(char**));
@@ -501,7 +502,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 		while (orders[cursor] != NULL) {
 			if (strcmp(orders[cursor]->product, products[product]) == 0) {
 				if (orders[cursor]->type == SELL) {
-					levels = orderbook_helper(orders[cursor], &num_levels, &num_sell_levels, levels);	// +++ Check that these pointers are actually updated lol
+					levels = orderbook_helper(orders[cursor], &num_levels, &num_sell_levels, levels);
 				}
 				if (orders[cursor]->type == BUY) {
 					levels = orderbook_helper(orders[cursor], &num_levels, &num_buy_levels, levels);
@@ -690,6 +691,7 @@ int main(int argc, char **argv) {
 		struct order** orders = malloc(sizeof(struct order));
 		orders[0] = NULL;
 
+		int time = 0;
 		int running = 1;
 		while (running) {
 
@@ -700,7 +702,6 @@ int main(int argc, char **argv) {
 			}
 
 			char** arg_array;
-			// use select here to monitor pipe +++
 			if (read_trader != -1) {
 
 				int cursor = 0;
@@ -839,16 +840,16 @@ int main(int argc, char **argv) {
 						traders[cursor]->current_order_id++;
 					}
 					if (strcmp(arg_array[0], "BUY") == 0) {
-						orders = create_order(BUY, product_index, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders, traders);
+						orders = create_order(BUY, product_index, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders, traders, time++);
 
 					} else if (strcmp(arg_array[0], "SELL") == 0) {
-						orders = create_order(SELL, product_index, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders);
+						orders = create_order(SELL, product_index, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders, time++);
 
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
-						orders = create_order(AMEND, product_index, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders);
+						orders = create_order(AMEND, product_index, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders, time++);
 
 					} else if (strcmp(arg_array[0], "CANCEL") == 0) {
-						orders = create_order(CANCEL, product_index, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders);
+						orders = create_order(CANCEL, product_index, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders, time++);
 					}
 					// Generating and displaying the orderbook for the exchange
 					generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);

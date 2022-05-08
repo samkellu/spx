@@ -28,6 +28,7 @@ struct trader {
 struct order {
   int type;
   int order_id;
+  int time;
   char* product;
   int qty;
   int price;
