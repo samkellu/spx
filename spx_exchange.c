@@ -81,7 +81,7 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 
 		int cursor = 0;
 		while (orders[cursor] != NULL) {
-			printf("%d  %d:%d\n", orders[cursor]->trader->id==new_order->trader->id, orders[cursor]->order_id==new_order->order_id);
+			printf("%d  %d\n", orders[cursor]->trader->id==new_order->trader->id, orders[cursor]->order_id==new_order->order_id);
 			if (orders[cursor]->trader->id == new_order->trader->id && orders[cursor]->order_id == new_order->order_id) {
 				printf("%s", orders[cursor]->product);
 				printf("wow");
