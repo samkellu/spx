@@ -143,9 +143,7 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 			// int trader_valid = (orders[current_order]->trader != new_order->trader);
 // trader_valid &&
 			if (product_valid && price_valid && orders[current_order]->type == SELL) {
-				price_valid = (orders[current_order]->price < cheapest_sell->price);
-				int time_valid = (orders[current_order]->time < cheapest_sell->time);
-				if (cheapest_sell == NULL || (orders[current_order]->price == cheapest_sell->price && time_valid) || price_valid) {
+				if (cheapest_sell == NULL || (orders[current_order]->price == cheapest_sell->price && orders[current_order]->time < cheapest_sell->time) || orders[current_order]->price < cheapest_sell->price) {
 					cheapest_sell = orders[current_order];
 				}
 			}
@@ -248,9 +246,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 			// int trader_valid = (orders[current_order]->trader != new_order->trader);
 // trader_valid &&
 			if (product_valid && price_valid && orders[current_order]->type == BUY) {
-				price_valid = (orders[current_order]->price > highest_buy->price);
-				int time_valid = (orders[current_order]->time < highest_buy->time);
-				if (highest_buy == NULL || (orders[current_order]->price == highest_buy->price && time_valid) || price_valid) {
+				if (highest_buy == NULL || (orders[current_order]->price == highest_buy->price && orders[current_order]->time < highest_buy->time) || orders[current_order]->price > highest_buy->price) {
 					highest_buy = orders[current_order];
 				}
 			}
