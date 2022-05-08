@@ -50,6 +50,7 @@ struct order** delete_order(struct order* del_order, struct order** orders) {
 		index++;
 	}
 	orders = realloc(orders, sizeof(struct order) * index);
+	free(del_order->product);
 	free(del_order);
 	return orders;
 }
@@ -61,6 +62,7 @@ struct order** cancel_order(struct order* new_order, struct order** orders, int 
 		index++;
 	}
 	orders = delete_order(orders[index], orders);
+	free(new_order->product);
 	free(new_order);
 	return orders;
 }
