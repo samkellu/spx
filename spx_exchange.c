@@ -788,17 +788,8 @@ int main(int argc, char **argv) {
 						}
 						break;
 
-					case 4: // case for AMEND orders
-						qty = strtol(arg_array[2], NULL, 10);
-						price = strtol(arg_array[3], NULL, 10);
-						sprintf(msg, "AMENDED %s;", arg_array[1]);
-
+					case 4:
 					case 2:
-						qty_valid = 1;
-						price_valid = 1;
-						sprintf(msg, "CANCELLED %s;", arg_array[1]);
-
-					case 4||2:
 						product_valid = 1;
 						int index = 0;
 						while (orders[index] != NULL) {
@@ -808,6 +799,18 @@ int main(int argc, char **argv) {
 							}
 							index++;
 						}
+
+					case 4: // case for AMEND orders
+						qty = strtol(arg_array[2], NULL, 10);
+						price = strtol(arg_array[3], NULL, 10);
+						sprintf(msg, "AMENDED %s;", arg_array[1]);
+						break;
+
+					case 2:
+						qty_valid = 1;
+						price_valid = 1;
+						sprintf(msg, "CANCELLED %s;", arg_array[1]);
+						break;
 				}
 
 
