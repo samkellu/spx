@@ -74,7 +74,7 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 	new_order->price = price;
 	new_order->trader = trader;
 	new_order->product = malloc(PRODUCT_LENGTH);
-	
+
 	if (product != NULL) {
 		memcpy(new_order->product, product, PRODUCT_LENGTH);
 	}
@@ -576,6 +576,7 @@ int disconnect(struct trader** traders, struct order** orders, char** products, 
 
 		cursor = 0;
 		while (orders[cursor] != NULL) {
+			free(orders[cursor]->product);
 			free(orders[cursor++]);
 		}
 		free(orders);
