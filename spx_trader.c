@@ -26,7 +26,6 @@ int main(int argc, char ** argv) {
     sprintf(path, "/tmp/spx_trader_%d", id);
     int trader_fd = open(path, O_WRONLY);
 
-    int debug_count = 0;
     int order_id = 0;
 
     while (running) {
