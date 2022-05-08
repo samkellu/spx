@@ -11,10 +11,10 @@ void sig_read(int errno) {
 }
 
 int main(int argc, char ** argv) {
-    if (argc < 2) {
-        printf("Not enough arguments\n");
-        return 1;
-    }
+    // if (argc < 2) {
+    //     printf("Not enough arguments\n");
+    //     return 1;
+    // }
     signal(SIGUSR1, sig_read);
 
     pid_t ppid = getppid();
