@@ -4,12 +4,10 @@ LDFLAGS=-lm
 BINARIES=spx_exchange spx_trader spx_auto_trader
 
 .PHONY: generate
-generate: clean spx_exchange.c spx_trader.c spx_auto_trader.c spx_common.h spx_exchange.h spx_trader.h
+generate: clean spx_exchange.c spx_trader.c spx_common.h spx_exchange.h spx_trader.h
 
 	$(CC) -o spx_exchange spx_exchange.c $(CFLAGS) $(LDFLAGS)
 	$(CC) -o spx_trader spx_trader.c $(CFLAGS) $(LDFLAGS)
-	$(CC) -o spx_auto_trader spx_auto_trader.c $(CFLAGS) $(LDFLAGS)
-
 
 .PHONY: clean
 clean:
