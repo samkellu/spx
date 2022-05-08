@@ -143,7 +143,9 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 			// int trader_valid = (orders[current_order]->trader != new_order->trader);
 // trader_valid &&
 			if (product_valid && price_valid && orders[current_order]->type == SELL) {
-				if (cheapest_sell == NULL || (orders[current_order]->price < cheapest_sell->price && orders[current_order]->time < cheapest_sell->time)) {
+				price_valid = (orders[current_order]->price < cheapest_sell->price);
+				int time_valid = (orders[current_order]->time < cheapest_sell->time);
+				if (cheapest_sell == NULL || (orders[current_order]->price == cheapest_sell->price && time_valid) || price_valid) {
 					cheapest_sell = orders[current_order];
 				}
 			}
@@ -180,18 +182,6 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		char path[PATH_LENGTH];
 		int fd;
 
-		if (new_order->trader->active) {
-			// Inform initiating trader that their order has been filled
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
-			fd = open(path, O_WRONLY);
-			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
-			write_pipe(fd, msg);
-			kill(new_order->trader->pid, SIGUSR1);
-			close(fd);
-		}
-		// Update position values
-		new_order->trader->position_qty[pos_index] += qty;
-		new_order->trader->position_cost[pos_index] -= (cost + fee);
 
 		if (cheapest_sell->trader->active) {
 			// Inform trader that their order has been filled
@@ -206,6 +196,18 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		cheapest_sell->trader->position_qty[pos_index] -= qty;
 		cheapest_sell->trader->position_cost[pos_index] += cost;
 
+		if (new_order->trader->active) {
+			// Inform initiating trader that their order has been filled
+			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
+			fd = open(path, O_WRONLY);
+			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
+			write_pipe(fd, msg);
+			kill(new_order->trader->pid, SIGUSR1);
+			close(fd);
+		}
+		// Update position values
+		new_order->trader->position_qty[pos_index] += qty;
+		new_order->trader->position_cost[pos_index] -= (cost + fee);
 
 		if (cheapest_sell->qty == 0) {
 			orders = delete_order(cheapest_sell, orders);
@@ -246,7 +248,9 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 			// int trader_valid = (orders[current_order]->trader != new_order->trader);
 // trader_valid &&
 			if (product_valid && price_valid && orders[current_order]->type == BUY) {
-				if (highest_buy == NULL || (orders[current_order]->price > highest_buy->price && orders[current_order]->time < highest_buy->time)) {
+				price_valid = (orders[current_order]->price > highest_buy->price);
+				int time_valid = (orders[current_order]->time < highest_buy->time);
+				if (highest_buy == NULL || (orders[current_order]->price == highest_buy->price && time_valid) || price_valid) {
 					highest_buy = orders[current_order];
 				}
 			}
@@ -282,18 +286,6 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		char path[PATH_LENGTH];
 		int fd;
 
-		if (new_order->trader->active) {
-			// inform initiating trader that their order has been fulfilled
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
-			fd = open(path, O_WRONLY);
-			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
-			write_pipe(fd, msg);
-			kill(new_order->trader->pid, SIGUSR1);
-			close(fd);
-		}
-		// Update position values
-		new_order->trader->position_qty[pos_index] -= qty;
-		new_order->trader->position_cost[pos_index] += cost - fee;
 
 		if (highest_buy->trader->active) {
 			// Inform trader that their order has been filled
@@ -308,6 +300,18 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		highest_buy->trader->position_qty[pos_index] += qty;
 		highest_buy->trader->position_cost[pos_index] -= cost;
 
+		if (new_order->trader->active) {
+			// inform initiating trader that their order has been fulfilled
+			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
+			fd = open(path, O_WRONLY);
+			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
+			write_pipe(fd, msg);
+			kill(new_order->trader->pid, SIGUSR1);
+			close(fd);
+		}
+		// Update position values
+		new_order->trader->position_qty[pos_index] -= qty;
+		new_order->trader->position_cost[pos_index] += cost - fee;
 
 		if (highest_buy->qty == 0) {
 			orders = delete_order(highest_buy, orders);
@@ -846,10 +850,10 @@ int main(int argc, char **argv) {
 						orders = create_order(SELL, product_index, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders, time++);
 
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
-						orders = create_order(AMEND, product_index, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders, time++);
+						orders = create_order(AMEND, product_index, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders, time);
 
 					} else if (strcmp(arg_array[0], "CANCEL") == 0) {
-						orders = create_order(CANCEL, product_index, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders, time++);
+						orders = create_order(CANCEL, product_index, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders, time);
 					}
 					// Generating and displaying the orderbook for the exchange
 					generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
