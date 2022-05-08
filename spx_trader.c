@@ -43,7 +43,7 @@ int main(int argc, char ** argv) {
         if (!market_open) {
           if (strcmp(buf, "MARKET OPEN;") == 0) {
             market_open = 1;
-            break;
+            continue;
           }
         }
 
