@@ -56,8 +56,12 @@ int main(int argc, char ** argv) {
           token = strtok(NULL, " ");
         }
 
-        if (strcmp(args[0], "SELL") == 0) {
+        if (strcmp(args[0], "SELL") == 0 && strtol(args[3], NULL, 10) < QTY_LIMIT) {
           if (strtol(args[3], NULL, 10) >= QTY_LIMIT) {
+            for (int arg_num = 0; arg_num < arg_counter; arg_num++) {
+              free(args[arg_num]);
+            }
+            free(args);
             return 0;
           }
           char* msg = malloc(MAX_INPUT);
