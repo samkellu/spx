@@ -366,6 +366,8 @@ char** read_products_file(char* fp) {
 		product = strtok(fgets(product, PRODUCT_LENGTH, file), "\n");
 		if (product != NULL) {
 			products[index++] = product;
+		} else {
+			free(product);
 		}
 	}
 	fclose(file);
