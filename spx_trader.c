@@ -22,20 +22,14 @@ int main(int argc, char ** argv) {
     char path[PATH_LENGTH];
 
     sprintf(path, "/tmp/spx_exchange_%d", id);
-    int exchange_fd = open(path, O_RDWR);
+    int exchange_fd = open(path, O_RDONLY);
     sprintf(path, "/tmp/spx_trader_%d", id);
-    int trader_fd = open(path, O_RDWR);
+    int trader_fd = open(path, O_WRONLY);
 
     int debug_count = 0;
     int order_id = 0;
 
     while (running) {
-      sleep(1);
-      debug_count++;
-      if (debug_count == 5) {
-        return 0;
-      }
-
       if (read_flag) {
 
         read_flag = 0;
@@ -76,7 +70,6 @@ int main(int argc, char ** argv) {
           free(args[arg_num]);
         }
         free(args);
-
       }
     }
     return 0;
