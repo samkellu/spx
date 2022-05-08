@@ -70,12 +70,14 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 	struct order* new_order = malloc(sizeof(struct order));
 	new_order->type = type;
 	new_order->order_id = order_id;
-	if (product != NULL) {
-		memcpy(new_order->product, product, PRODUCT_LENGTH);
-	}
 	new_order->qty = qty;
 	new_order->price = price;
 	new_order->trader = trader;
+	if (product != NULL) {
+		memcpy(new_order->product, product, PRODUCT_LENGTH);
+	} else {
+		new_order->product = malloc(PRODUCT_LENGTH);
+	}
 
 	if (type == AMEND || type == CANCEL) {
 
