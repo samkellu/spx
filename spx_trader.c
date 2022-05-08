@@ -36,12 +36,6 @@ int main(int argc, char ** argv) {
         return 0;
       }
 
-      if (market_open && read_flag) {
-        write(trader_fd, "BUY;", strlen("BUY;") + 1);
-        kill(ppid, SIGUSR1);
-        read_flag = 0;
-      }
-
       if (read_flag) {
 
         read_flag = 0;
