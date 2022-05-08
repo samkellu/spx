@@ -61,10 +61,14 @@ struct order** delete_order(struct order* del_order, struct order** orders) {
 struct order** cancel_order(struct order* new_order, struct order** orders, int pos_index) {
 
 	int index = 0;
-	while (orders[index]->trader != new_order->trader && orders[index]->order_id != new_order->order_id) {
+	while (orders[index] != NULL) {
+		if (orders[index]->trader == new_order->trader && orders[index]->order_id == new_order->order_id) {
+			break;
+		}
 		index++;
 		printf("can %d\n", index);
 	}
+
 	orders = delete_order(orders[index], orders);
 	free(new_order->product);
 	free(new_order);
