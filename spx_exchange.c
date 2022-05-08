@@ -220,6 +220,7 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		orders[cursor + 1] = NULL;
 		return orders;
 	}
+	free(new_order->product);
 	free(new_order);
 	return orders;
 }
@@ -321,6 +322,7 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		orders[cursor + 1] = NULL;
 		return orders;
 	}
+	free(new_order->product);
 	free(new_order);
 	return orders;
 }
