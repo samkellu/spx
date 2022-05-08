@@ -38,7 +38,6 @@ int main(int argc, char ** argv) {
         int arg_counter = 0;
 
         read(exchange_fd, buf, MAX_INPUT);
-        printf("[Trader %d] [t=%d] Received from SPX: %s\n", id, 0, buf);
 
         if (!market_open) {
           if (strcmp(buf, "MARKET OPEN;") == 0) {
@@ -56,7 +55,7 @@ int main(int argc, char ** argv) {
           token = strtok(NULL, " ");
         }
 
-        if (strcmp(args[1], "SELL") == 0 && strtol(args[3], NULL, 10) < QTY_LIMIT) {
+        if (strcmp(args[1], "SELL") == 0) {
           if (strtol(args[3], NULL, 10) >= QTY_LIMIT) {
             for (int arg_num = 0; arg_num < arg_counter; arg_num++) {
               free(args[arg_num]);
