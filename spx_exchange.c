@@ -87,11 +87,8 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 		while (orders[cursor] != NULL) {
 			// printf("%d  %d\n", orders[cursor]->trader->id==new_order->trader->id, orders[cursor]->order_id==new_order->order_id);
 			if (orders[cursor]->trader->id == new_order->trader->id && orders[cursor]->order_id == new_order->order_id) {
-				printf("wow");
-				printf("%s", orders[cursor]->product);
 				new_order->type = orders[cursor]->type;
 				memcpy(new_order->product, orders[cursor]->product, PRODUCT_LENGTH);
-				printf("%s", new_order->product);
 				fflush(stdout);
 				break;
 			}
@@ -99,7 +96,7 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 		}
 	}
 	char* type_str;
-	switch (type) {
+	switch (new_order->type) {
 		case 0:
 			type_str = "BUY";
 			break;
@@ -109,7 +106,7 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 	}
 
 	char* market_msg = malloc(MAX_INPUT);
-	printf("price: %d, qty: %d, product %s, type %s", new_order->price, new_order->qty, new_order->product, type_str);
+	printf("price: %d, qty: %d, product %s", new_order->price, new_order->qty, new_order->product);
 	fflush(stdout);
 	sprintf(market_msg, "MARKET %s %s %d %d;", type_str, new_order->product, new_order->qty, new_order->price);
 
