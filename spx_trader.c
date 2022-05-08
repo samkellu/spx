@@ -33,8 +33,8 @@ int main(int argc, char ** argv) {
 
         read_flag = 0;
         char buf[MAX_INPUT] = "";
-        char** args = malloc(0);
         char* token;
+        char** args = malloc(0);
         int arg_counter = 0;
 
         read(exchange_fd, buf, MAX_INPUT);
@@ -65,7 +65,7 @@ int main(int argc, char ** argv) {
           }
           char* msg = malloc(MAX_INPUT);
           snprintf(msg, MAX_INPUT, "BUY %d %s %s %s;", order_id++, args[2], args[3], args[4]);
-          write(trader_fd, msg, strlen(msg) + 1);
+          write(trader_fd, msg, MAX_INPUT);
           kill(ppid, SIGUSR1);
           free(msg);
           read_flag = 0;
