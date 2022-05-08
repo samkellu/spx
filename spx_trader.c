@@ -57,8 +57,8 @@ int main(int argc, char ** argv) {
         }
 
         if (strcmp(args[0], "SELL") == 0) {
-          if (strtol(args[3], NULL, 10) >= 1000) {
-            break;
+          if (strtol(args[3], NULL, 10) >= QTY_LIMIT) {
+            return 0;
           }
           char* msg = malloc(MAX_INPUT);
           snprintf(msg, MAX_INPUT, "BUY %d %s %s %s;", order_id++, args[2], args[3], args[4]);
