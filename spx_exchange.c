@@ -788,8 +788,7 @@ int main(int argc, char **argv) {
 						}
 						break;
 
-					case 4:
-					case 2:
+					case 4||2:
 						product_valid = 1;
 						int index = 0;
 						while (orders[index] != NULL) {
