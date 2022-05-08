@@ -49,7 +49,7 @@ struct order** delete_order(struct order* del_order, struct order** orders) {
 		orders[index] = orders[index + 1];
 		index++;
 	}
-	orders = realloc(orders, sizeof(struct order) * index);
+	orders = realloc(orders, sizeof(struct order*) * (index + 1));
 	free(del_order->product);
 	free(del_order);
 	return orders;
@@ -105,8 +105,6 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 	}
 
 	char* market_msg = malloc(MAX_INPUT);
-	printf("price: %d, qty: %d, product %s", new_order->price, new_order->qty, new_order->product);
-	fflush(stdout);
 	sprintf(market_msg, "MARKET %s %s %d %d;", type_str, new_order->product, new_order->qty, new_order->price);
 
 	int index = 0;
