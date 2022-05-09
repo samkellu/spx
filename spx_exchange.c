@@ -364,9 +364,10 @@ char** read_products_file(char* fp) {
 
 	int index = 1;
 	while ((file_length - index) > 0) {
+
 		char* product = (char*) malloc(sizeof(char) * PRODUCT_LENGTH);
-		product = strtok(fgets(product, PRODUCT_LENGTH, file), "\n");
-		if (product == NULL) {
+		product = fgets(product, PRODUCT_LENGTH, file);
+		if (strcmp(product, "\n") == 0) {
 			free(product);
 		} else {
 			products[index++] = product;
