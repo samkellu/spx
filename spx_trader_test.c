@@ -54,7 +54,6 @@ int main(int argc, char ** argv) {
       if (market_open) {
         char* msg = malloc(MAX_INPUT);
         snprintf(msg, MAX_INPUT, "BUY %d GPU 10 11;", order_id++);
-        printf("%s\n", msg);
         write(trader_fd, msg, strlen(msg) + 1);
         kill(ppid, SIGUSR1);
         free(msg);
