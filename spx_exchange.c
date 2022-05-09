@@ -576,7 +576,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 		printf("%s	Trader %d: ", LOG_PREFIX, traders[cursor]->id);
 
 		for (int product_num = 0; product_num < num_products; product_num++) {
-			printf("%s %ld ($%ld)", products[product_num + 1], traders[cursor]->position_qty[product_num], traders[cursor]->position_cost[product_num]);
+			printf("%s %ld ($%ld)", products[product_num + 1], traders[cursor]->position_qty[product_num + 1], traders[cursor]->position_cost[product_num + 1]);
 			if (product_num != num_products - 1) {
 				printf(", ");
 			} else {
