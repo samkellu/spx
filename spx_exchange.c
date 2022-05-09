@@ -422,36 +422,6 @@ char** take_input(int fd) {
 		}
 	}
 
-
-	// int args_length = 1;
-	// char** arg_array = (char**) malloc(sizeof(char*));
-	// arg_array[0] = (char*)NULL;
-	//
-	// token = strtok(args, " ");
-	// while (token != NULL) {
-	// 	// Removing newline characters from the token
-	// 	int char_index = 0;
-	// 	while (token[char_index] != '\0') {
-	// 		if (token[char_index] == '\n') {
-	// 			token[char_index] = '\0';
-	// 		}
-	// 		char_index++;
-	// 	}
-	// 	//+++ do this char by char
-	//
-	// 	// Allocating memory to store the token
-	// 	arg_array = realloc(arg_array, (args_length + 1) * sizeof(char**));
-	// 	char* arg = malloc(PRODUCT_LENGTH);
-	// 	memcpy(arg, token, PRODUCT_LENGTH);
-	// 	arg_array[args_length - 1] = arg;
-	// 	// Null terminated array of args
-	// 	arg_array[args_length] = (char*)NULL;
-	//
-	// 	// Traverse to next token
-	// 	token = strtok(NULL, " ");
-	// 	args_length++;
-	// }
-	// free(args);
 	return args;
 }
 
@@ -754,17 +724,7 @@ int main(int argc, char **argv) {
 				int arg_cursor = 0;
 				while (arg_array[arg_cursor] != NULL) {
 
-					if (arg_array[arg_cursor + 1] == NULL) {
-						for (int cursor = 0; cursor < strlen(arg_array[arg_cursor]); cursor++) {
-							if (arg_array[arg_cursor][cursor] == ';' || arg_array[arg_cursor][cursor] == '\n') {
-								arg_array[arg_cursor][cursor] = '\0';
-								break;
-							}
-						}
-					}
-
 					printf("%s", arg_array[arg_cursor]);
-
 					if (arg_array[arg_cursor + 1] != NULL) {
 						printf(" ");
 					}
