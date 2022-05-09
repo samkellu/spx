@@ -63,9 +63,10 @@ int main(int argc, char ** argv) {
             free(args);
             return 0;
           }
+          // +++ should be checking whether the order is accepted and resending if revoked.
           char* msg = malloc(MAX_INPUT);
           snprintf(msg, MAX_INPUT, "BUY %d %s %s %s", order_id++, args[2], args[3], args[4]);
-          write(trader_fd, msg, strlen(msg) + 2);
+          write(trader_fd, msg, strlen(msg));
           kill(ppid, SIGUSR1);
           free(msg);
         }
