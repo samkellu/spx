@@ -401,8 +401,6 @@ char** take_input(int fd) {
 		int result = read(fd, &args[arg_counter][char_counter], 1);
 
 		if (result == -1) {
-			printf("failed");
-			fflush(stdout);
 			for (int cursor = 0; cursor <= arg_counter; cursor++) {
 				free(args[cursor]);
 			}
@@ -416,14 +414,10 @@ char** take_input(int fd) {
 			args = realloc(args, sizeof(char**) * (arg_counter + 2));
 			if (args[arg_counter][char_counter] == ';') { // +++ when there is no delimiter
 				args[arg_counter][char_counter] = '\0';
-				printf("what");
-				fflush(stdout);
 				args[arg_counter + 1] = NULL;
 				return args;
 			}
 			args[arg_counter][char_counter] = '\0';
-			printf("w%s ", args[arg_counter]);
-			fflush(stdout);
 			arg_counter++;
 
 			args[arg_counter] = malloc(PRODUCT_LENGTH);
