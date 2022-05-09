@@ -72,7 +72,7 @@ struct order** cancel_order(struct order* new_order, struct order** orders, int 
 	return orders;
 }
 
-struct order** create_order(int type, int pos_index, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**, int), struct order** orders, struct trader** traders, int time) {
+struct order** create_order(int type, char** products, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, struct order**, int), struct order** orders, struct trader** traders, int time) {
  // Adding order to the exchange's array of orders/ memory management stuff
 	struct order* new_order = malloc(sizeof(struct order));
 	new_order->type = type;
@@ -91,6 +91,7 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 
 		int cursor = 0;
 		while (orders[cursor] != NULL) {
+
 			if (orders[cursor]->trader == new_order->trader && orders[cursor]->order_id == new_order->order_id) {
 				new_order->type = orders[cursor]->type;
 				memcpy(new_order->product, orders[cursor]->product, PRODUCT_LENGTH);
@@ -100,6 +101,15 @@ struct order** create_order(int type, int pos_index, struct trader* trader, int 
 			cursor++;
 		}
 	}
+
+	int pos_index = 0;
+	for (int index = 1; index <= strtol(products[0], NULL, 10); index++) {
+		if (strcmp(products[index], new_order->product) == 0) {
+			pos_index = index - 1;
+			break;
+		}
+	}
+
 	char* type_str;
 	switch (new_order->type) {
 		case 0:
@@ -576,7 +586,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 		printf("%s	Trader %d: ", LOG_PREFIX, traders[cursor]->id);
 
 		for (int product_num = 0; product_num < num_products; product_num++) {
-			printf("%s %ld ($%ld)", products[product_num + 1], traders[cursor]->position_qty[product_num + 1], traders[cursor]->position_cost[product_num + 1]);
+			printf("%s %ld ($%ld)", products[product_num + 1], traders[cursor]->position_qty[product_num], traders[cursor]->position_cost[product_num]);
 			if (product_num != num_products - 1) {
 				printf(", ");
 			} else {
@@ -788,7 +798,6 @@ int main(int argc, char **argv) {
 				int product_valid = 0;
 				int qty_valid = 0;
 				int price_valid = 0;
-				int product_index = 0;
 
 				char* msg = malloc(MAX_INPUT);
 				order_id = strtol(arg_array[1], NULL, 10);
@@ -802,7 +811,6 @@ int main(int argc, char **argv) {
 
 						if (strcmp(products[product], arg_array[2]) == 0) {
 							product_valid = 1;
-							product_index = product - 1;
 							id_valid = (order_id == traders[cursor]->current_order_id);
 							break;
 						}
@@ -850,16 +858,16 @@ int main(int argc, char **argv) {
 						traders[cursor]->current_order_id++;
 					}
 					if (strcmp(arg_array[0], "BUY") == 0) {
-						orders = create_order(BUY, product_index, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders, traders, time++);
+						orders = create_order(BUY, products, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders, traders, time++);
 
 					} else if (strcmp(arg_array[0], "SELL") == 0) {
-						orders = create_order(SELL, product_index, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders, time++);
+						orders = create_order(SELL, products, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders, time++);
 
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
-						orders = create_order(AMEND, product_index, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders, time++);
+						orders = create_order(AMEND, products, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders, time++);
 
 					} else if (strcmp(arg_array[0], "CANCEL") == 0) {
-						orders = create_order(CANCEL, product_index, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders, time);
+						orders = create_order(CANCEL, products, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders, time);
 					}
 					// Generating and displaying the orderbook for the exchange
 					generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
