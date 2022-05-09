@@ -338,8 +338,6 @@ struct order** amend_order(struct order* new_order, struct order** orders, int p
 	while (orders[cursor] != NULL) {
 
 		if (orders[cursor]->order_id == new_order->order_id && orders[cursor]->trader == new_order->trader) {
-			orders[cursor]->qty = new_order->qty;
-			orders[cursor]->price = new_order->price;
 			break;
 		}
 		cursor++;
@@ -348,11 +346,11 @@ struct order** amend_order(struct order* new_order, struct order** orders, int p
 	struct order* amended_order = malloc(sizeof(struct order));
 	amended_order->type = orders[cursor]->type;
 	amended_order->order_id = orders[cursor]->order_id;
-	amended_order->qty = orders[cursor]->qty;
-	amended_order->price = orders[cursor]->price;
+	amended_order->qty = new_order->qty;
+	amended_order->price = new_order->price;
 	amended_order->trader = orders[cursor]->trader;
 	amended_order->product = malloc(PRODUCT_LENGTH);
-	amended_order->time = orders[cursor]->time;
+	amended_order->time = new_order->time;
 	memcpy(amended_order->product, orders[cursor]->product, PRODUCT_LENGTH);
 	orders = delete_order(orders[cursor], orders);
 
@@ -858,7 +856,7 @@ int main(int argc, char **argv) {
 						orders = create_order(SELL, product_index, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders, time++);
 
 					} else if (strcmp(arg_array[0], "AMEND") == 0) {
-						orders = create_order(AMEND, product_index, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders, time);
+						orders = create_order(AMEND, product_index, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders, time++);
 
 					} else if (strcmp(arg_array[0], "CANCEL") == 0) {
 						orders = create_order(CANCEL, product_index, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders, time);
