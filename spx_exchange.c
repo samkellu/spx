@@ -401,11 +401,17 @@ char** take_input(int fd) {
 		args[arg_counter] = (char*)realloc(&args[arg_counter][char_counter], sizeof(char) * char_counter);
 		int result = read(fd, &args[arg_counter][char_counter], 1);
 
-		total_counter++;
-
 		if (result == -1) {
+			printf("failed");
+			fflush(stdout);
+			for (int cursor = 0; cursor <= arg_counter; cursor++) {
+				free(args[cursor]);
+			}
+			free(args);
 			return (char**)NULL;
 		}
+		total_counter++;
+
 
 		if (args[arg_counter][char_counter] == ' '  || args[arg_counter][char_counter] == ';') {
 			printf("arg %s", args[arg_counter]);
@@ -422,7 +428,6 @@ char** take_input(int fd) {
 		}
 		char_counter++;
 	}
-
 	return args;
 }
 
