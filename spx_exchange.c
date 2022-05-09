@@ -367,6 +367,7 @@ char** read_products_file(char* fp) {
 
 		char* product = (char*) malloc(sizeof(char) * PRODUCT_LENGTH);
 		product = fgets(product, PRODUCT_LENGTH, file);
+		// Checks for null or empty lines
 		if (product[0] == '\n' || product[0] == '\0') {
 			free(product);
 		} else {
