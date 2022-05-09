@@ -401,7 +401,6 @@ char** take_input(int fd) {
 		args[arg_counter] = (char*)realloc(&args[arg_counter][char_counter], sizeof(char) * char_counter);
 		int result = read(fd, &args[arg_counter][char_counter], 1);
 
-		char_counter++;
 		total_counter++;
 
 		if (result == -1) {
@@ -421,6 +420,7 @@ char** take_input(int fd) {
 			char_counter = 0;
 			continue;
 		}
+		char_counter++;
 	}
 
 	return args;
