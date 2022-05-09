@@ -390,15 +390,14 @@ char** read_products_file(char* fp) {
 char** take_input(int fd) {
 
 	char** args = malloc(sizeof(char**));
-	args[0] = malloc(0);
+	args[0] = malloc(PRODUCT_LENGTH);
 
 	int char_counter = 0;
 	int arg_counter = 0;
-	int total_counter;
+	int total_counter = 0;
 
 	while (total_counter < MAX_INPUT) {
 
-		args[arg_counter] = (char*)realloc(args[arg_counter], sizeof(char) * char_counter);
 		int result = read(fd, &args[arg_counter][char_counter], 1);
 
 		if (result == -1) {
@@ -413,14 +412,19 @@ char** take_input(int fd) {
 		total_counter++;
 
 		if (args[arg_counter][char_counter] == ' '  || args[arg_counter][char_counter] == ';') {
-			printf("arg %s", args[arg_counter]);
-			fflush(stdout);
 
-			args = realloc(args, sizeof(char**) * (++arg_counter + 1));
+			args = realloc(args, sizeof(char**) * (arg_counter + 2));
 			if (args[arg_counter][char_counter] == ';') { // +++ when there is no delimiter
-				args[arg_counter] = (char*)NULL;
-				break;
+				args[arg_counter][char_counter] = '\0';
+				printf("what");
+				fflush(stdout);
+				args[arg_counter + 1] = NULL;
+				return args;
 			}
+			args[arg_counter][char_counter] = '\0';
+			printf("w%s ", args[arg_counter]);
+			fflush(stdout);
+			arg_counter++;
 
 			args[arg_counter] = malloc(PRODUCT_LENGTH);
 			char_counter = 0;
@@ -428,7 +432,7 @@ char** take_input(int fd) {
 		}
 		char_counter++;
 	}
-	return args;
+	return (char**)NULL;
 }
 
 struct trader* initialise_trader(char* path, int index, int num_products) {
