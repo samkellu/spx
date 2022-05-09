@@ -466,7 +466,10 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 
 	if (new_trader->pid > 0) {
 		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
-		sleep(1);
+		struct timespec tim, tim2;
+		tim.tv_sec = 0;
+		tim.tv_nsec = 100000;
+		nanosleep(&tim , &tim2);
 		return new_trader;
 	}
 
