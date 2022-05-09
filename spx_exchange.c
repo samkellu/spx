@@ -344,9 +344,24 @@ struct order** amend_order(struct order* new_order, struct order** orders, int p
 		}
 		cursor++;
 	}
+
+	struct order* amended_order = malloc(sizeof(struct order));
+	amended_order->type = orders[cursor]->type;
+	amended_order->order_id = orders[cursor]->order_id;
+	amended_order->qty = orders[cursor]->qty;
+	amended_order->price = orders[cursor]->price;
+	amended_order->trader = orders[cursor]->trader;
+	amended_order->product = malloc(PRODUCT_LENGTH);
+	amended_order->time = orders[cursor]->time;
+	memcpy(amended_order->product, orders[cursor]->product, PRODUCT_LENGTH);
+	orders = delete_order(orders[cursor], orders);
+
 	free(new_order->product);
 	free(new_order);
-	return orders;
+	if (amended_order->type == SELL) {
+		return sell_order(amended_order, orders, pos_index);
+	}
+	return buy_order(amended_order, orders, pos_index);
 }
 
 // Reads the products file and returns a list of the product's names
