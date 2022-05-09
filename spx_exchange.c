@@ -409,12 +409,13 @@ char** take_input(int fd) {
 		}
 
 		if (args[arg_counter][char_counter] == ' '  || args[arg_counter][char_counter] == ';') {
-			args = realloc(args, sizeof(char**) * (++arg_counter + 1));
-
+			printf("arg %s", args[arg_counter]);
+			fflush(stdout);
 			if (args[arg_counter][char_counter] == ';') { // +++ when there is no delimiter
 				args[arg_counter] = (char*)NULL;
 				break;
 			}
+			args = realloc(args, sizeof(char**) * (++arg_counter + 1));
 
 			args[arg_counter] = malloc(PRODUCT_LENGTH);
 			char_counter = 0;
