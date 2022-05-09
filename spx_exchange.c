@@ -388,40 +388,68 @@ char** read_products_file(char* fp) {
 }
 
 char** take_input(int fd) {
-	char input[MAX_INPUT], *token;
-	int result = read(fd, input, MAX_INPUT);
-	if (result == -1) {
-		return (char**)NULL;
-	}
-	int args_length = 1;
-	char** arg_array = (char**) malloc(sizeof(char*));
-	arg_array[0] = (char*)NULL;
 
-	token = strtok(input, " ");
-	while (token != NULL) {
-		// Removing newline characters from the token
-		int char_index = 0;
-		while (token[char_index] != '\0') {
-			if (token[char_index] == '\n') {
-				token[char_index] = '\0';
-			}
-			char_index++;
+	char *input = "";
+	char** args = malloc(sizeof(char**));
+	args[0] = malloc(PRODUCT_LENGTH);
+
+	int char_counter = 0;
+	int arg_counter = 0;
+	int total_counter;
+
+	while (arg_counter != (MAX_INPUT - 1)) {
+		int result = read(fd, input, 1);
+		total_counter++;
+		if (result == -1) {
+			return (char**)NULL;
 		}
-		//+++ do this char by char
 
-		// Allocating memory to store the token
-		arg_array = realloc(arg_array, (args_length + 1) * sizeof(char**));
-		char* arg = malloc(PRODUCT_LENGTH);
-		memcpy(arg, token, PRODUCT_LENGTH);
-		arg_array[args_length - 1] = arg;
-		// Null terminated array of args
-		arg_array[args_length] = (char*)NULL;
+		if (*input == ' '  || *input == ';') {
+			args = realloc(args, sizeof(char**) * (++arg_counter + 1));
 
-		// Traverse to next token
-		token = strtok(NULL, " ");
-		args_length++;
+			if (*input == ';') { // +++ when there is no delimiter
+				args[arg_counter] = (char*)NULL;
+				break;
+			}
+
+			args[arg_counter] = malloc(PRODUCT_LENGTH);
+			char_counter = 0;
+			continue;
+		}
+		args[arg_counter][++char_counter] = *input;
 	}
-	return arg_array;
+
+
+	// int args_length = 1;
+	// char** arg_array = (char**) malloc(sizeof(char*));
+	// arg_array[0] = (char*)NULL;
+	//
+	// token = strtok(args, " ");
+	// while (token != NULL) {
+	// 	// Removing newline characters from the token
+	// 	int char_index = 0;
+	// 	while (token[char_index] != '\0') {
+	// 		if (token[char_index] == '\n') {
+	// 			token[char_index] = '\0';
+	// 		}
+	// 		char_index++;
+	// 	}
+	// 	//+++ do this char by char
+	//
+	// 	// Allocating memory to store the token
+	// 	arg_array = realloc(arg_array, (args_length + 1) * sizeof(char**));
+	// 	char* arg = malloc(PRODUCT_LENGTH);
+	// 	memcpy(arg, token, PRODUCT_LENGTH);
+	// 	arg_array[args_length - 1] = arg;
+	// 	// Null terminated array of args
+	// 	arg_array[args_length] = (char*)NULL;
+	//
+	// 	// Traverse to next token
+	// 	token = strtok(NULL, " ");
+	// 	args_length++;
+	// }
+	// free(args);
+	return args;
 }
 
 struct trader* initialise_trader(char* path, int index, int num_products) {
