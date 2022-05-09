@@ -389,25 +389,29 @@ char** read_products_file(char* fp) {
 
 char** take_input(int fd) {
 
-	char *input = "";
 	char** args = malloc(sizeof(char**));
-	args[0] = malloc(PRODUCT_LENGTH);
+	args[0] = malloc(0);
 
 	int char_counter = 0;
 	int arg_counter = 0;
 	int total_counter;
 
-	while (arg_counter != (MAX_INPUT - 1)) {
-		int result = read(fd, input, 1);
+	while (total_counter < MAX_INPUT) {
+
+		args[arg_counter] = (char*)realloc(&args[arg_counter][char_counter], sizeof(char) * char_counter);
+		int result = read(fd, &args[arg_counter][char_counter], 1);
+
+		char_counter++;
 		total_counter++;
+
 		if (result == -1) {
 			return (char**)NULL;
 		}
 
-		if (*input == ' '  || *input == ';') {
+		if (args[arg_counter][char_counter] == ' '  || args[arg_counter][char_counter] == ';') {
 			args = realloc(args, sizeof(char**) * (++arg_counter + 1));
 
-			if (*input == ';') { // +++ when there is no delimiter
+			if (args[arg_counter][char_counter] == ';') { // +++ when there is no delimiter
 				args[arg_counter] = (char*)NULL;
 				break;
 			}
@@ -416,7 +420,6 @@ char** take_input(int fd) {
 			char_counter = 0;
 			continue;
 		}
-		args[arg_counter][++char_counter] = *input;
 	}
 
 
