@@ -11,6 +11,7 @@
 int read_trader = -1;
 int init_flag = 0;
 int disconnect_trader = -1;
+int exit_flag = 0;
 long total_fees = 0;
 
 
@@ -18,14 +19,9 @@ void read_sig(int signo, siginfo_t *si, void *uc) {
 	if (signo == SIGUSR1) {
 		read_trader = si->si_pid;
 	} else if (signo == SIGUSR2) {
-		printf("%s Error: Given trader binary doesn't exist\n", LOG_PREFIX);
-		exit(0); // +++ replace with a graceful exit function
+		exit_flag = 1;
 	} else if (signo == SIGCHLD) {
 		disconnect_trader = si->si_pid;
-		return;
-	} else if (signo == SIGINT) {
-		printf("Exitting...");
-		exit(0);
 	}
 }
 
@@ -470,6 +466,7 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 
 	if (new_trader->pid > 0) {
 		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
+		sleep(1);
 		return new_trader;
 	}
 
@@ -654,243 +651,256 @@ int disconnect(struct trader** traders, struct order** orders, char** products, 
 }
 
 int main(int argc, char **argv) {
-	if (argc > 1) {
-		printf("%s Starting\n", LOG_PREFIX);
-		char** products = read_products_file(argv[1]);
+	if (argc < 3) {
+		printf("%s Invalid command line arguments\n", LOG_PREFIX);
+		return -1;
+	}
+	printf("%s Starting\n", LOG_PREFIX);
+	char** products = read_products_file(argv[1]);
 
-		if (products == NULL) {
-			printf("%s Error: Products file does not exist", LOG_PREFIX);
+	if (products == NULL) {
+		printf("%s Error: Products file invalid", LOG_PREFIX);
+		return -1;
+	}
+
+	struct trader** traders = malloc(sizeof(struct trader) * (argc - 1));
+	traders[argc - 2] = NULL;
+
+
+	// Setting up signal handling
+	struct sigaction sig_act;
+
+	sig_act.sa_handler = (void *)read_sig;
+	sigemptyset(&sig_act.sa_mask);
+	sig_act.sa_flags = SA_RESTART | SA_SIGINFO;
+
+	sigaction(SIGCLD, &sig_act, NULL);
+	sigaction(SIGUSR1, &sig_act, NULL);
+	sigaction(SIGUSR2, &sig_act, NULL);
+
+	for (int trader = 2; trader < argc; trader++) {
+		// Creates named pipes for the exchange and traders
+		char exchange_path[PATH_LENGTH];
+		char trader_path[PATH_LENGTH];
+		snprintf(exchange_path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
+		if (create_fifo(exchange_path) == -1) {
 			return -1;
 		}
 
-		struct trader** traders = malloc(sizeof(struct trader) * (argc - 1));
-		traders[argc - 2] = NULL;
-
-		struct sigaction sig_act;
-
-		sig_act.sa_handler = (void *)read_sig;
-		sigemptyset(&sig_act.sa_mask);
-		sig_act.sa_flags = SA_RESTART | SA_SIGINFO;
-
-		sigaction(SIGCLD, &sig_act, NULL);
-		sigaction(SIGUSR1, &sig_act, NULL);
-		sigaction(SIGUSR2, &sig_act, NULL);
-		sigaction(SIGINT, &sig_act, NULL);
-
-
-		for (int trader = 2; trader < argc; trader++) {
-			// Creates named pipes for the exchange and traders
-			char exchange_path[PATH_LENGTH];
-			char trader_path[PATH_LENGTH];
-			snprintf(exchange_path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
-			if (create_fifo(exchange_path) == -1) {
-				return -1;
-			}
-
-			snprintf(trader_path, PATH_LENGTH, TRADER_PATH, trader-2);
-			if (create_fifo(trader_path) == -1) {
-				return -1;
-			}
-
-			// Starts trader processes specified by command line arguments
-			traders[trader-2] = initialise_trader(argv[trader], trader-2, strtol(products[0], NULL, 10));
-			if (traders[trader-2] == NULL) {
-				return -1;
-			}
-
-			// Connects to each named pipe
-			traders[trader-2]->exchange_fd = open(exchange_path, O_WRONLY);
-			printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
-
-			traders[trader-2]->trader_fd = open(trader_path, O_RDONLY);
-			printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
-		}
-		// Sending MARKET OPEN message to all exchange pipes
-		int cursor = 0;
-		while (traders[cursor] != NULL) {
-			write_pipe(traders[cursor++]->exchange_fd, "MARKET OPEN;");
+		snprintf(trader_path, PATH_LENGTH, TRADER_PATH, trader-2);
+		if (create_fifo(trader_path) == -1) {
+			return -1;
 		}
 
-		cursor = 0;
-		while (traders[cursor] != NULL) {
-			kill(traders[cursor++]->pid, SIGUSR1);
+		// Starts trader processes specified by command line arguments
+		traders[trader-2] = initialise_trader(argv[trader], trader-2, strtol(products[0], NULL, 10));
+		// Gracefully exists in the event that a trader could not be started
+		if (exit_flag == 1 || traders[trader-2] == NULL) {
+			printf("%s Error: Given trader binary is invalid\n", LOG_PREFIX);
+			int num_products = strtol(products[0], NULL, 10);
+			for (int cursor = 0; cursor <= num_products; cursor++) {
+				free(products[cursor]);
+			}
+			free(products);
+
+			int cursor = 0;
+			while (traders[cursor] != NULL) {
+				free(traders[cursor]->position_qty);
+				free(traders[cursor]->position_cost);
+				free(traders[cursor++]);
+			}
+			free(traders);
+			return -1;
 		}
 
+		// Connects to each named pipe
+		traders[trader-2]->exchange_fd = open(exchange_path, O_WRONLY);
+		printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
 
-		// Creates a null terminated array of orders
-		struct order** orders = malloc(sizeof(struct order));
-		orders[0] = NULL;
+		traders[trader-2]->trader_fd = open(trader_path, O_RDONLY);
+		printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
+	}
+	// Sending MARKET OPEN message to all exchange pipes
+	int cursor = 0;
+	while (traders[cursor] != NULL) {
+		write_pipe(traders[cursor++]->exchange_fd, "MARKET OPEN;");
+	}
 
-		int time = 0;
-		int running = 1;
-		while (running) {
+	cursor = 0;
+	while (traders[cursor] != NULL) {
+		kill(traders[cursor++]->pid, SIGUSR1);
+	}
 
-			if (disconnect_trader != -1) {
-				if (disconnect(traders, orders, products, argc)) {
-					return 0;
+	// Creates a null terminated array of orders
+	struct order** orders = malloc(sizeof(struct order));
+	orders[0] = NULL;
+
+	int time = 0;
+	int running = 1;
+	while (running) {
+
+		if (disconnect_trader != -1) {
+			if (disconnect(traders, orders, products, argc)) {
+				return 0;
+			}
+		}
+
+		char** arg_array;
+		if (read_trader != -1) {
+
+			int cursor = 0;
+			while (traders[cursor] != NULL) {
+				if (traders[cursor]->pid == read_trader && traders[cursor]->active) {
+					arg_array = take_input(traders[cursor]->trader_fd);
+					break;
 				}
+				cursor++;
+			}
+			read_trader = -1;
+
+			if (traders[cursor] == NULL) {
+				continue;
 			}
 
-			char** arg_array;
-			if (read_trader != -1) {
+			printf("%s [T%d] Parsing command: <", LOG_PREFIX, traders[cursor]->id);
 
-				int cursor = 0;
-				while (traders[cursor] != NULL) {
-					if (traders[cursor]->pid == read_trader && traders[cursor]->active) {
-						arg_array = take_input(traders[cursor]->trader_fd);
+			int arg_cursor = 0;
+			while (arg_array[arg_cursor] != NULL) {
+
+				printf("%s", arg_array[arg_cursor]);
+				if (arg_array[arg_cursor + 1] != NULL) {
+					printf(" ");
+				}
+				arg_cursor++;
+			}
+
+			printf(">\n");
+
+			int valid_num_args = 0;
+			if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
+				valid_num_args = 5;
+			} else if (strcmp(arg_array[0], "AMEND") == 0) {
+				valid_num_args = 4;
+			} else if (strcmp(arg_array[0], "CANCEL") == 0) {
+				valid_num_args = 2;
+			}
+
+			if (arg_cursor != valid_num_args) {
+				arg_cursor = 0;
+
+				while (arg_array[arg_cursor] != NULL) {
+					free(arg_array[arg_cursor++]);
+				}
+
+				free(arg_array);
+				if (traders[cursor]->active) {
+					// Inform the trader that their order was invalid
+					char* msg = malloc(MAX_INPUT);
+					sprintf(msg, "INVALID;");
+					write_pipe(traders[cursor]->exchange_fd, msg);
+					kill(traders[cursor]->pid, SIGUSR1);
+					free(msg);
+				}
+				continue;
+			}
+
+			int qty;
+			int price;
+			int order_id;
+
+			int id_valid = 0;
+			int product_valid = 0;
+			int qty_valid = 0;
+			int price_valid = 0;
+
+			char* msg = malloc(MAX_INPUT);
+			order_id = strtol(arg_array[1], NULL, 10);
+
+			if (valid_num_args == 5) {
+
+				qty = strtol(arg_array[3], NULL, 10);
+				price = strtol(arg_array[4], NULL, 10);
+				sprintf(msg, "ACCEPTED %s;", arg_array[1]);
+				for (int product = 1; product <= strtol(products[0], NULL, 10); product++) {
+
+					if (strcmp(products[product], arg_array[2]) == 0) {
+						product_valid = 1;
+						id_valid = (order_id == traders[cursor]->current_order_id);
 						break;
 					}
-					cursor++;
 				}
-				read_trader = -1;
+			} else if (valid_num_args == 4 || valid_num_args == 2) {
+				product_valid = 1;
+				int index = 0;
+				while (orders[index] != NULL) {
 
-				if (traders[cursor] == NULL) {
-					continue;
-				}
-
-				printf("%s [T%d] Parsing command: <", LOG_PREFIX, traders[cursor]->id);
-
-				int arg_cursor = 0;
-				while (arg_array[arg_cursor] != NULL) {
-
-					printf("%s", arg_array[arg_cursor]);
-					if (arg_array[arg_cursor + 1] != NULL) {
-						printf(" ");
+					if (orders[index]->trader == traders[cursor] && orders[index]->order_id == order_id) {
+						id_valid = 1;
+						break;
 					}
-					arg_cursor++;
+					index++;
 				}
 
-				printf(">\n");
+				if (valid_num_args == 4) {
 
-				int valid_num_args = 0;
-				if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
-					valid_num_args = 5;
-				} else if (strcmp(arg_array[0], "AMEND") == 0) {
-					valid_num_args = 4;
-				} else if (strcmp(arg_array[0], "CANCEL") == 0) {
-					valid_num_args = 2;
+					qty = strtol(arg_array[2], NULL, 10);
+					price = strtol(arg_array[3], NULL, 10);
+					sprintf(msg, "AMENDED %s;", arg_array[1]);
+				} else if (valid_num_args == 2) {
+
+					qty_valid = 1;
+					price_valid = 1;
+					sprintf(msg, "CANCELLED %s;", arg_array[1]);
 				}
-
-				if (arg_cursor != valid_num_args) {
-					arg_cursor = 0;
-
-					while (arg_array[arg_cursor] != NULL) {
-						free(arg_array[arg_cursor++]);
-					}
-
-					free(arg_array);
-					if (traders[cursor]->active) {
-						// Inform the trader that their order was invalid
-						char* msg = malloc(MAX_INPUT);
-						sprintf(msg, "INVALID;");
-						write_pipe(traders[cursor]->exchange_fd, msg);
-						kill(traders[cursor]->pid, SIGUSR1);
-						free(msg);
-					}
-					continue;
-				}
-
-				int qty;
-				int price;
-				int order_id;
-
-				int id_valid = 0;
-				int product_valid = 0;
-				int qty_valid = 0;
-				int price_valid = 0;
-
-				char* msg = malloc(MAX_INPUT);
-				order_id = strtol(arg_array[1], NULL, 10);
-
-				if (valid_num_args == 5) {
-
-					qty = strtol(arg_array[3], NULL, 10);
-					price = strtol(arg_array[4], NULL, 10);
-					sprintf(msg, "ACCEPTED %s;", arg_array[1]);
-					for (int product = 1; product <= strtol(products[0], NULL, 10); product++) {
-
-						if (strcmp(products[product], arg_array[2]) == 0) {
-							product_valid = 1;
-							id_valid = (order_id == traders[cursor]->current_order_id);
-							break;
-						}
-					}
-				} else if (valid_num_args == 4 || valid_num_args == 2) {
-					product_valid = 1;
-					int index = 0;
-					while (orders[index] != NULL) {
-
-						if (orders[index]->trader == traders[cursor] && orders[index]->order_id == order_id) {
-							id_valid = 1;
-							break;
-						}
-						index++;
-					}
-
-					if (valid_num_args == 4) {
-
-						qty = strtol(arg_array[2], NULL, 10);
-						price = strtol(arg_array[3], NULL, 10);
-						sprintf(msg, "AMENDED %s;", arg_array[1]);
-					} else if (valid_num_args == 2) {
-
-						qty_valid = 1;
-						price_valid = 1;
-						sprintf(msg, "CANCELLED %s;", arg_array[1]);
-					}
-				}
-
-
-				if (valid_num_args == 5 || valid_num_args == 4) {
-					qty_valid = (qty > 0 && qty < 1000000);
-					price_valid = (price > 0 && price < 1000000);
-				}
-
-				if (id_valid && product_valid && qty_valid && price_valid) {
-					// Inform the trader that their order was accept
-					if (traders[cursor]->active) {
-						write_pipe(traders[cursor]->exchange_fd, msg);
-						kill(traders[cursor]->pid, SIGUSR1);
-						free(msg);
-					}
-
-					if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
-						traders[cursor]->current_order_id++;
-					}
-					if (strcmp(arg_array[0], "BUY") == 0) {
-						orders = create_order(BUY, products, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders, traders, time++);
-
-					} else if (strcmp(arg_array[0], "SELL") == 0) {
-						orders = create_order(SELL, products, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders, time++);
-
-					} else if (strcmp(arg_array[0], "AMEND") == 0) {
-						orders = create_order(AMEND, products, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders, time++);
-
-					} else if (strcmp(arg_array[0], "CANCEL") == 0) {
-						orders = create_order(CANCEL, products, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders, time);
-					}
-					// Generating and displaying the orderbook for the exchange
-					generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
-
-				} else {
-					if (traders[cursor]->active) {
-						// Inform the trader that their order was invalid
-						sprintf(msg, "INVALID;");
-						write_pipe(traders[cursor]->exchange_fd, msg);
-						kill(traders[cursor]->pid, SIGUSR1);
-						free(msg);
-					}
-				}
-
-				cursor = 0;
-				while (arg_array[cursor] != NULL) {
-					free(arg_array[cursor++]);
-				}
-				free(arg_array);
 			}
+
+
+			if (valid_num_args == 5 || valid_num_args == 4) {
+				qty_valid = (qty > 0 && qty < 1000000);
+				price_valid = (price > 0 && price < 1000000);
+			}
+
+			if (id_valid && product_valid && qty_valid && price_valid) {
+				// Inform the trader that their order was accept
+				if (traders[cursor]->active) {
+					write_pipe(traders[cursor]->exchange_fd, msg);
+					kill(traders[cursor]->pid, SIGUSR1);
+					free(msg);
+				}
+
+				if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
+					traders[cursor]->current_order_id++;
+				}
+				if (strcmp(arg_array[0], "BUY") == 0) {
+					orders = create_order(BUY, products, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders, traders, time++);
+
+				} else if (strcmp(arg_array[0], "SELL") == 0) {
+					orders = create_order(SELL, products, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders, time++);
+
+				} else if (strcmp(arg_array[0], "AMEND") == 0) {
+					orders = create_order(AMEND, products, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders, time++);
+
+				} else if (strcmp(arg_array[0], "CANCEL") == 0) {
+					orders = create_order(CANCEL, products, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders, time);
+				}
+				// Generating and displaying the orderbook for the exchange
+				generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
+
+			} else {
+				if (traders[cursor]->active) {
+					// Inform the trader that their order was invalid
+					sprintf(msg, "INVALID;");
+					write_pipe(traders[cursor]->exchange_fd, msg);
+					kill(traders[cursor]->pid, SIGUSR1);
+					free(msg);
+				}
+			}
+
+			cursor = 0;
+			while (arg_array[cursor] != NULL) {
+				free(arg_array[cursor++]);
+			}
+			free(arg_array);
 		}
-	} else {
-		printf("Not enough arguments"); //+++ check  messaging and arg lengths
-		return 1;
 	}
 }
