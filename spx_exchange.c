@@ -398,7 +398,7 @@ char** take_input(int fd) {
 
 	while (total_counter < MAX_INPUT) {
 
-		args[arg_counter] = (char*)realloc(&args[arg_counter][char_counter], sizeof(char) * char_counter);
+		args[arg_counter] = (char*)realloc(args[arg_counter], sizeof(char) * char_counter);
 		int result = read(fd, &args[arg_counter][char_counter], 1);
 
 		if (result == -1) {
@@ -412,15 +412,15 @@ char** take_input(int fd) {
 		}
 		total_counter++;
 
-
 		if (args[arg_counter][char_counter] == ' '  || args[arg_counter][char_counter] == ';') {
 			printf("arg %s", args[arg_counter]);
 			fflush(stdout);
+
+			args = realloc(args, sizeof(char**) * (++arg_counter + 1));
 			if (args[arg_counter][char_counter] == ';') { // +++ when there is no delimiter
 				args[arg_counter] = (char*)NULL;
 				break;
 			}
-			args = realloc(args, sizeof(char**) * (++arg_counter + 1));
 
 			args[arg_counter] = malloc(PRODUCT_LENGTH);
 			char_counter = 0;
