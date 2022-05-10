@@ -116,20 +116,25 @@ struct order** create_order(int type, char** products, struct trader* trader, in
 			break;
 	}
 
-
-	orders = operation(new_order, orders, pos_index);
-
 	char* market_msg = malloc(MAX_INPUT);
-	sprintf(market_msg, "MARKET %s %s %d %d;", type_str, product, qty, price);
+	sprintf(market_msg, "MARKET %s %s %d %d;", type_str, new_order->product, new_order->qty, new_order->price);
+
 	int index = 0;
 	while (traders[index] != NULL) {
-		if (traders[index] != trader && traders[index]->active) {
+		if (traders[index] != new_order->trader && traders[index]->active) {
 			write_pipe(traders[index]->exchange_fd, market_msg);
 			kill(traders[index]->pid, SIGUSR1);
 		}
 		index++;
 	}
 	free(market_msg);
+
+	orders = operation(new_order, orders, pos_index);
+	
+	struct timespec tim, tim2;
+	tim.tv_sec = 0;
+	tim.tv_nsec = 100000;
+	nanosleep(&tim , &tim2);
 
 	return orders;
 }
