@@ -1,0 +1,22 @@
+[Trader 0] Received from SPX: MARKET OPEN;
+[Trader 0] Event: INVALID;
+[Trader 0] Received from SPX: INVALID;
+[Trader 0] Event: SELL -1 GPU 10 10;
+[Trader 0] Received from SPX: INVALID;
+[Trader 0] Event: SELL 1 GPU 30 20;
+[Trader 0] Received from SPX: INVALID;
+[Trader 0] Event: SELL 0 DOG 100 100;
+[Trader 0] Received from SPX: INVALID;
+[Trader 0] Event: SELL 0 GPU -1 100;
+[Trader 0] Received from SPX: INVALID;
+[Trader 0] Event: SELL 0 GPU 10 -100;
+[Trader 0] Received from SPX: INVALID;
+[Trader 0] Event: SELL 0 GPU 1000000 100;
+[Trader 0] Received from SPX: INVALID;
+[Trader 0] Event: SELL 0 GPU 100 1000000;
+[Trader 0] Received from SPX: INVALID;
+[Trader 0] Event: SELL 0 GPU 1000000 100
+[Trader 0] Event: CANCEL 12;
+[Trader 0] Received from SPX: INVALID;
+[Trader 0] Event: AMEND 22 22 22;
+[Trader 0] Received from SPX: INVALID;

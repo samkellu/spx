@@ -1,0 +1,10 @@
+[Trader 0] Received from SPX: MARKET OPEN;MARKET OPEN;[SPX] Starting
+[SPX] Trading 2 products: GPU Router
+[SPX] Created FIFO /tmp/spx_exchange_0
+[SPX] Created FIFO /tmp/spx_trader_0
+[SPX] Starting trader 0 (tests/e2e/no_trades/test_trader)
+[SPX] Connected to /tmp/spx_exchange_0
+[SPX] Connected to /tmp/spx_trader_0
+[SPX] Trader 0 disconnected
+[SPX] Trading completed
+[SPX] Exchange fees collected: $0

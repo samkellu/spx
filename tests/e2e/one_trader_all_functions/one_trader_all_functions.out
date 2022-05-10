@@ -1,0 +1,58 @@
+[SPX] Starting
+[SPX] Trading 2 products: GPU Router
+[SPX] Created FIFO /tmp/spx_exchange_0
+[SPX] Created FIFO /tmp/spx_trader_0
+[SPX] Starting trader 0 (tests/e2e/one_trader_all_functions/test_trader)
+[SPX] Connected to /tmp/spx_exchange_0
+[SPX] Connected to /tmp/spx_trader_0
+[SPX] [T0] Parsing command: <BUY 0 GPU 30 50>
+[SPX]	--ORDERBOOK--
+[SPX]	Product: GPU; Buy levels: 1; Sell levels: 0
+[SPX]		BUY 30 @ $50 (1 order)
+[SPX]	Product: Router; Buy levels: 0; Sell levels: 0
+[SPX]	--POSITIONS--
+[SPX]	Trader 0: GPU 0 ($0), Router 0 ($0)
+[SPX] [T0] Parsing command: <SELL 1 Router 20 30>
+[SPX]	--ORDERBOOK--
+[SPX]	Product: GPU; Buy levels: 1; Sell levels: 0
+[SPX]		BUY 30 @ $50 (1 order)
+[SPX]	Product: Router; Buy levels: 0; Sell levels: 1
+[SPX]		SELL 20 @ $30 (1 order)
+[SPX]	--POSITIONS--
+[SPX]	Trader 0: GPU 0 ($0), Router 0 ($0)
+[SPX] [T0] Parsing command: <SELL 2 GPU 30 20>
+[SPX] Match: Order 0 [T0], New Order 2 [T0], value: $1500, fee: $15.
+[SPX]	--ORDERBOOK--
+[SPX]	Product: GPU; Buy levels: 0; Sell levels: 0
+[SPX]	Product: Router; Buy levels: 0; Sell levels: 1
+[SPX]		SELL 20 @ $30 (1 order)
+[SPX]	--POSITIONS--
+[SPX]	Trader 0: GPU 0 ($-15), Router 0 ($0)
+[SPX] [T0] Parsing command: <SELL 3 GPU 100 100>
+[SPX]	--ORDERBOOK--
+[SPX]	Product: GPU; Buy levels: 0; Sell levels: 1
+[SPX]		SELL 100 @ $100 (1 order)
+[SPX]	Product: Router; Buy levels: 0; Sell levels: 1
+[SPX]		SELL 20 @ $30 (1 order)
+[SPX]	--POSITIONS--
+[SPX]	Trader 0: GPU 0 ($-15), Router 0 ($0)
+[SPX] [T0] Parsing command: <AMEND 3 30 30>
+[SPX]	--ORDERBOOK--
+[SPX]	Product: GPU; Buy levels: 0; Sell levels: 1
+[SPX]		SELL 30 @ $30 (1 order)
+[SPX]	Product: Router; Buy levels: 0; Sell levels: 1
+[SPX]		SELL 20 @ $30 (1 order)
+[SPX]	--POSITIONS--
+[SPX]	Trader 0: GPU 0 ($-15), Router 0 ($0)
+[SPX] [T0] Parsing command: <CANCEL 1>
+[SPX]	--ORDERBOOK--
+[SPX]	Product: GPU; Buy levels: 0; Sell levels: 1
+[SPX]		SELL 30 @ $30 (1 order)
+[SPX]	Product: Router; Buy levels: 0; Sell levels: 0
+[SPX]	--POSITIONS--
+[SPX]	Trader 0: GPU 0 ($-15), Router 0 ($0)
+[SPX] [T0] Parsing command: <CANCEL 12>
+[SPX] [T0] Parsing command: <AMEND 1 2 3>
+[SPX] Trader 0 disconnected
+[SPX] Trading completed
+[SPX] Exchange fees collected: $15

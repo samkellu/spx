@@ -130,11 +130,6 @@ struct order** create_order(int type, char** products, struct trader* trader, in
 	free(market_msg);
 
 	orders = operation(new_order, orders, pos_index);
-	
-	struct timespec tim, tim2;
-	tim.tv_sec = 0;
-	tim.tv_nsec = 100000;
-	nanosleep(&tim , &tim2);
 
 	return orders;
 }
@@ -204,6 +199,11 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		// Update position values
 		cheapest_sell->trader->position_qty[pos_index] -= qty;
 		cheapest_sell->trader->position_cost[pos_index] += cost;
+
+		struct timespec tim, tim2;
+		tim.tv_sec = 0;
+		tim.tv_nsec = 1000000;
+		nanosleep(&tim , &tim2);
 
 		if (new_order->trader->active) {
 			// Inform initiating trader that their order has been filled
@@ -306,6 +306,11 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		// Update position values
 		highest_buy->trader->position_qty[pos_index] += qty;
 		highest_buy->trader->position_cost[pos_index] -= cost;
+
+		struct timespec tim, tim2;
+		tim.tv_sec = 0;
+		tim.tv_nsec = 1000000;
+		nanosleep(&tim , &tim2);
 
 		if (new_order->trader->active) {
 			// inform initiating trader that their order has been fulfilled
@@ -422,7 +427,7 @@ char** take_input(int fd) {
 	int arg_counter = 0;
 	int total_counter = 0;
 
-	while (total_counter < MAX_INPUT) {
+	while (total_counter < MAX_INPUT && char_counter < PRODUCT_LENGTH - 1) {
 
 		int result = read(fd, &args[arg_counter][char_counter], 1);
 
@@ -452,6 +457,10 @@ char** take_input(int fd) {
 		}
 		char_counter++;
 	}
+	for (int cursor = 0; cursor <= arg_counter; cursor++) {
+		free(args[cursor]);
+	}
+	free(args);
 	return (char**)NULL;
 }
 
@@ -766,7 +775,7 @@ int main(int argc, char **argv) {
 			}
 			read_trader = -1;
 
-			if (traders[cursor] == NULL) {
+			if (arg_array == NULL || traders[cursor] == NULL) {
 				continue;
 			}
 

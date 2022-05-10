@@ -1,0 +1,20 @@
+[SPX] Starting
+[SPX] Trading 2 products: GPU Router
+[SPX] Created FIFO /tmp/spx_exchange_0
+[SPX] Created FIFO /tmp/spx_trader_0
+[SPX] Starting trader 0 (tests/e2e/invalid_commands/test_trader)
+[SPX] Connected to /tmp/spx_exchange_0
+[SPX] Connected to /tmp/spx_trader_0
+[SPX] [T0] Parsing command: <INVALID>
+[SPX] [T0] Parsing command: <SELL -1 GPU 10 10>
+[SPX] [T0] Parsing command: <SELL 1 GPU 30 20>
+[SPX] [T0] Parsing command: <SELL 0 DOG 100 100>
+[SPX] [T0] Parsing command: <SELL 0 GPU -1 100>
+[SPX] [T0] Parsing command: <SELL 0 GPU 10 -100>
+[SPX] [T0] Parsing command: <SELL 0 GPU 1000000 100>
+[SPX] [T0] Parsing command: <SELL 0 GPU 100 1000000>
+[SPX] [T0] Parsing command: <SELL 0 GPU 1000000 100CANCEL 12>
+[SPX] [T0] Parsing command: <AMEND 22 22 22>
+[SPX] Trader 0 disconnected
+[SPX] Trading completed
+[SPX] Exchange fees collected: $0

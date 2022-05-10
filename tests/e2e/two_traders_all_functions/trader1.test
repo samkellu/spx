@@ -1,0 +1,13 @@
+[Trader 0] Received from SPX: MARKET OPEN;
+[Trader 0] Event: SELL 0 GPU 30 500;
+[Trader 0] Received from SPX: ACCEPTED 0;
+[Trader 0] Event: SELL 1 GPU 30 501;
+[Trader 0] Received from SPX: ACCEPTED 1;
+[Trader 0] Event: SELL 2 GPU 30 501;
+[Trader 0] Received from SPX: ACCEPTED 2;
+[Trader 0] Event: SELL 3 GPU 30 502;
+[Trader 0] Received from SPX: MARKET BUY GPU 30 499;ACCEPTED 3;
+[Trader 0] Event: SELL 4 Router 22 51;
+[Trader 0] Received from SPX: ACCEPTED 4;
+[Trader 0] Event: CANCEL 0;
+[Trader 0] Received fr
