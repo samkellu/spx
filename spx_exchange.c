@@ -123,7 +123,7 @@ struct order** create_order(int type, char** products, struct trader* trader, in
 	sprintf(market_msg, "MARKET %s %s %d %d;", type_str, product, qty, price);
 	int index = 0;
 	while (traders[index] != NULL) {
-		if (traders[index] != new_order->trader && traders[index]->active) {
+		if (traders[index] != trader && traders[index]->active) {
 			write_pipe(traders[index]->exchange_fd, market_msg);
 			kill(traders[index]->pid, SIGUSR1);
 		}
