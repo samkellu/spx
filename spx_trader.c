@@ -27,6 +27,7 @@ int main(int argc, char ** argv) {
     int trader_fd = open(path, O_WRONLY);
 
     int order_id = 0;
+    int valid = 1;
 
     while (running) {
       if (read_flag) {
@@ -36,7 +37,6 @@ int main(int argc, char ** argv) {
         char* token;
         char** args = malloc(0);
         int arg_counter = 0;
-        int valid = 0;
 
         read(exchange_fd, buf, MAX_INPUT);
 
@@ -57,7 +57,9 @@ int main(int argc, char ** argv) {
         }
 
         if (strcmp(args[0], "ACCEPTED") == 0) {
-          if (strtol(args[1], NULL, 10) == order_id) {
+          char* tmp = malloc(MAX_TRADERS_BYTES);
+          snprintf(tmp, MAX_TRADERS_BYTES, "%d;", order_id);
+          if (strcmp(args[1],tmp) == 0) {
             valid = 1;
             order_id++;
           }
