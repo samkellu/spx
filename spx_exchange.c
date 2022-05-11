@@ -833,7 +833,9 @@ int main(int argc, char **argv) {
 	while (1) {
 
 		// Waits for signals from traders before checking flags to minimise CPU usage
-		pause();
+		if (read_trader == -1 && disconnect_trader == -1) {
+			pause();
+		}
 
 		// Locates the trader that wrote to the exchange via PID
 		if (read_trader != -1) {
