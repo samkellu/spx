@@ -815,12 +815,12 @@ int main(int argc, char **argv) {
 	int cursor = 0;
 	while (traders[cursor] != NULL) {
 		write_pipe(traders[cursor++]->exchange_fd, "MARKET OPEN;");
-	}
-
-	cursor = 0;
-	while (traders[cursor] != NULL) {
 		kill(traders[cursor++]->pid, SIGUSR1);
 	}
+
+	// cursor = 0;
+	// while (traders[cursor] != NULL) {
+	// }
 
 	// Creates a null terminated array of orders
 	struct order** orders = malloc(sizeof(struct order));
