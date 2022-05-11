@@ -34,17 +34,18 @@ int main(int argc, char ** argv) {
 
       if (valid) {
         pause();
+
       } else {
+
         kill(ppid, SIGUSR1);
         struct timespec tim, tim2;
         tim.tv_sec = 0;
-        double nsec = 1000000000 * pow(0.5, exponent++);
+        double nsec = 1000000000 * (pow(2, exponent++)/16);
         tim.tv_nsec = nsec;
         nanosleep(&tim , &tim2);
 
-        if (exponent > 10) {
-          valid = 1;
-          continue;
+        if (exponent == 5) {
+          exponent = 4;
         }
       }
 
