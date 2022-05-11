@@ -746,6 +746,7 @@ int main(int argc, char **argv) {
 	int running = 1;
 	while (running) {
 
+		pause(); 
 		if (disconnect_trader != -1) {
 			if (disconnect(traders, orders, products, argc)) {
 				return 0;
