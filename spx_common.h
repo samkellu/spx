@@ -24,5 +24,6 @@
 #define MAX_INPUT (64)
 #define MAX_TRADERS_BYTES (4)
 #define MAX_PID (6)
+#define FIFO_PERMS (0666)
 
 #endif
