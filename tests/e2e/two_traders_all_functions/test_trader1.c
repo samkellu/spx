@@ -33,7 +33,7 @@ int main(int argc, char ** argv) {
   int cursor = 0;
   int counter = 0;
 
-  while (counter++ < 8000) {
+  while (counter++ < 5000) {
 
     struct timespec tim, tim2;
     tim.tv_sec = 0;
@@ -45,17 +45,22 @@ int main(int argc, char ** argv) {
       read_flag = 0;
       counter = 0;
       char* line_tok;
-      char buf[MAX_INPUT];
+      char buf[2*MAX_INPUT];
 
-      read(exchange_fd, buf, MAX_INPUT);
+      if (read(exchange_fd, buf, MAX_INPUT) <= 0) {
+        continue;
+      }
 
       line_tok = strtok(buf, ";");
       while (line_tok != NULL) {
-        char* tmp = malloc(2*MAX_INPUT);
-        snprintf(tmp, 2*MAX_INPUT, "[Trader %d] Received from SPX: %s;\n", id, buf);
+        char* tmp = malloc(4*MAX_INPUT);
+        snprintf(tmp, 4*MAX_INPUT, "[Trader %d] Received from SPX: %s;\n", id, line_tok);
 
-        snprintf(all_recv + cursor, strlen(tmp) + 1, "%s", tmp);
-        cursor += strlen(tmp) + 1;
+        if (strlen(tmp) > 38) {
+          snprintf(all_recv + cursor, 4*MAX_INPUT, "%s", tmp);
+          cursor += strlen(tmp);
+        }
+
         free(tmp);
         line_tok = strtok(NULL, ";");
       }

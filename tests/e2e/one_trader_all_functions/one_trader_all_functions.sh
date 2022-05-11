@@ -1,6 +1,6 @@
 #! /bin/bash
 RED='\033[0;31m'
-GREEN='\033[0;32m'
+GREEN='\033[0;34m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
@@ -15,4 +15,4 @@ diff tests/e2e/$test_name/$test_name.out tests/e2e/$test_name/$test_name.test &&
 diff tests/e2e/$test_name/trader.out tests/e2e/$test_name/trader.test && echo -e "${GREEN} $test_name Trader output correct.${NC}" || echo -e "${RED} $test_name Trader output incorrect.${NC}"
 
 rm tests/e2e/$test_name/$test_name.test
-# rm tests/e2e/$test_name/trader.test
+rm tests/e2e/$test_name/trader.test
