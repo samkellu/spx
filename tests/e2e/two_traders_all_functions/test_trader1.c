@@ -23,14 +23,16 @@ int main(int argc, char ** argv) {
   sprintf(path, "/tmp/spx_trader_%d", id);
   int trader_fd = open(path, O_WRONLY);
 
+  write(exchange_fd, "unused var", strlen("unused var"));
+
   char orders[11][MAX_INPUT] = {"SELL 0 GPU 30 500;", "SELL 1 GPU 30 501;", "SELL 2 GPU 30 501;"\
                   ,"SELL 3 GPU 30 502;", "SELL 4 Router 22 51;", "CANCEL 3;", "AMEND 1 30 502;", \
                   "AMEND 2 30 503;","AMEND 3 30 504;", "AMEND 4 22 505;",
                   "SELL 5 Router 100000 100000;"};
 
   int order_id = 0;
-  char* all_recv = malloc(8192);
-  int cursor = 0;
+  // char* all_recv = malloc(8192);
+  // int cursor = 0;
   int counter = 0;
 
   while (counter++ < 5000) {
@@ -44,26 +46,26 @@ int main(int argc, char ** argv) {
 
       read_flag = 0;
       counter = 0;
-      char* line_tok;
-      char buf[2*MAX_INPUT];
-
-      if (read(exchange_fd, buf, MAX_INPUT) <= 0) {
-        continue;
-      }
-
-      line_tok = strtok(buf, ";");
-      while (line_tok != NULL) {
-        char* tmp = malloc(4*MAX_INPUT);
-        snprintf(tmp, 4*MAX_INPUT, "[Trader %d] Received from SPX: %s;\n", id, line_tok);
-
-        if (strlen(tmp) > 38) {
-          snprintf(all_recv + cursor, 4*MAX_INPUT, "%s", tmp);
-          cursor += strlen(tmp);
-        }
-
-        free(tmp);
-        line_tok = strtok(NULL, ";");
-      }
+      // char* line_tok;
+      // char buf[2*MAX_INPUT];
+      //
+      // if (read(exchange_fd, buf, MAX_INPUT) <= 0) {
+      //   continue;
+      // }
+      //
+      // line_tok = strtok(buf, ";");
+      // while (line_tok != NULL) {
+      //   char* tmp = malloc(4*MAX_INPUT);
+      //   snprintf(tmp, 4*MAX_INPUT, "[Trader %d] Received from SPX: %s;\n", id, line_tok);
+      //
+      //   if (strlen(tmp) > 38) {
+      //     snprintf(all_recv + cursor, 4*MAX_INPUT, "%s", tmp);
+      //     cursor += strlen(tmp);
+      //   }
+      //
+      //   free(tmp);
+      //   line_tok = strtok(NULL, ";");
+      // }
     }
 
     if (counter > 800 && order_id < 11) {
@@ -79,17 +81,17 @@ int main(int argc, char ** argv) {
       counter = 0;
     }
   }
-
-  fprintf(f, "\n\nSPX ---> TRADER\n\n");
-  for (int x = 0; x < 8192; x++) {
-    if (all_recv[x] >= 0 && all_recv[x] <= 177){
-      if (all_recv[x] == '\t') {
-        continue;
-      }
-      fprintf(f, "%c", all_recv[x]);
-    }
-  }
-  free(all_recv);
+  //
+  // fprintf(f, "\n\nSPX ---> TRADER\n\n");
+  // for (int x = 0; x < 8192; x++) {
+  //   if (all_recv[x] >= 0 && all_recv[x] <= 177){
+  //     if (all_recv[x] == '\t') {
+  //       continue;
+  //     }
+  //     fprintf(f, "%c", all_recv[x]);
+  //   }
+  // }
+  // free(all_recv);
   sleep(5);
   fclose(f);
   return 0;

@@ -433,7 +433,7 @@ char** take_input(int fd) {
 		if (args[arg_counter][char_counter] == ' '  || args[arg_counter][char_counter] == ';') {
 
 			args = realloc(args, sizeof(char**) * (arg_counter + 2));
-			if (args[arg_counter][char_counter] == ';') { // +++ when there is no delimiter
+			if (args[arg_counter][char_counter] == ';') {
 				args[arg_counter][char_counter] = '\0';
 				args[arg_counter + 1] = NULL;
 				return args;
