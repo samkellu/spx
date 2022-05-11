@@ -33,8 +33,14 @@ int main(int argc, char ** argv) {
 
       if (valid) {
         pause();
+      } else {
+        kill(ppid, SIGUSR1);
+        struct timespec tim, tim2;
+        tim.tv_sec = 0;
+        tim.tv_nsec = 10000;
+        nanosleep(&tim , &tim2);
       }
-      
+
       if (read_flag) {
 
         read_flag = 0;
@@ -94,9 +100,6 @@ int main(int argc, char ** argv) {
           free(args[arg_num]);
         }
         free(args);
-      }
-      if (!valid) {
-        kill(ppid, SIGUSR1);
       }
     }
     return 0;
