@@ -30,6 +30,7 @@ int main(int argc, char ** argv) {
     int valid = 1;
 
     while (running) {
+
       if (read_flag) {
 
         read_flag = 0;
@@ -82,8 +83,6 @@ int main(int argc, char ** argv) {
             kill(ppid, SIGUSR1);
             free(msg);
 
-          } else {
-            kill(ppid, SIGUSR1);
           }
         }
 
@@ -91,6 +90,9 @@ int main(int argc, char ** argv) {
           free(args[arg_num]);
         }
         free(args);
+      }
+      if (!valid) {
+        kill(ppid, SIGUSR1);
       }
     }
     return 0;
