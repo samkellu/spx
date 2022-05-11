@@ -514,7 +514,7 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
 		struct timespec tim, tim2;
 		tim.tv_sec = 0;
-		tim.tv_nsec = 1000;
+		tim.tv_nsec = 100000;
 		nanosleep(&tim , &tim2);
 
 		return new_trader;
@@ -814,13 +814,13 @@ int main(int argc, char **argv) {
 	// Sending MARKET OPEN message to all exchange pipes
 	int cursor = 0;
 	while (traders[cursor] != NULL) {
-		write_pipe(traders[cursor]->exchange_fd, "MARKET OPEN;");
-		kill(traders[cursor++]->pid, SIGUSR1);
+		write_pipe(traders[cursor++]->exchange_fd, "MARKET OPEN;");
 	}
 
-	// cursor = 0;
-	// while (traders[cursor] != NULL) {
-	// }
+	cursor = 0;
+	while (traders[cursor] != NULL) {
+		kill(traders[cursor++]->pid, SIGUSR1);
+	}
 
 	// Creates a null terminated array of orders
 	struct order** orders = malloc(sizeof(struct order));
