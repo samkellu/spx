@@ -507,12 +507,12 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 	}
 
 	// If the process is the parent, returns the new trader struct
-	if (new_trader->pid == 0) {
+	if (new_trader->pid > 0) {
 
 		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
 		return new_trader;
 
-	} else if (new_trader->pid > 0){
+	} else if (new_trader->pid == 0){
 		// If the process is the child, formats command line arguments and execs to start the new process
 		char trader_id[MAX_TRADERS_BYTES];
 		sprintf(trader_id, "%d", index);
