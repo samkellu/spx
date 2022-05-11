@@ -743,14 +743,15 @@ int main(int argc, char **argv) {
 	orders[0] = NULL;
 
 	int time = 0;
-	int running = 1;
-	while (running) {
 
-		pause(); 
+	while (1) {
+
+		pause();
 		if (disconnect_trader != -1) {
 			if (disconnect(traders, orders, products, argc)) {
 				return 0;
 			}
+			continue;
 		}
 
 		char** arg_array;
