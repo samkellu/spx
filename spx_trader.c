@@ -2,7 +2,6 @@
 #include "spx_common.h"
 
 int read_flag = 0;
-int running = 1;
 int market_open = 0;
 
 void sig_read(int errno) {
@@ -21,16 +20,17 @@ int main(int argc, char ** argv) {
     int id = strtol(argv[1], NULL, 10);
     char path[PATH_LENGTH];
 
+    int order_id = 0;
+    int valid = 1;
+    int exponent = 1;
+
     sprintf(path, "/tmp/spx_exchange_%d", id);
     int exchange_fd = open(path, O_RDONLY);
     sprintf(path, "/tmp/spx_trader_%d", id);
     int trader_fd = open(path, O_WRONLY);
 
-    int order_id = 0;
-    int valid = 1;
-    int exponent = 1;
 
-    while (running) {
+    while (1) {
 
       if (valid) {
         pause();
@@ -52,7 +52,7 @@ int main(int argc, char ** argv) {
         if (exponent == 10) {
           valid = 1;
           exponent = 0;
-          continue;
+          return -1;
         }
       }
 
