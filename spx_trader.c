@@ -27,7 +27,7 @@ int main(int argc, char ** argv) {
 
     int order_id = 0;
     int valid = 1;
-    int exponent = 1;
+    float exponent = 1;
 
     while (1) {
 
@@ -39,7 +39,8 @@ int main(int argc, char ** argv) {
         // Exponential back-off function helps minimise the effect of lost signals,
         // as they are re-sent at exponentially increasing intervals until they are
         // received
-        double nsec = 1000000000 * (pow(1.3, exponent++)/4);
+        double nsec = 1000000000 * (pow(1.3, exponent)/4);
+        exponent += 0.7
 
         struct timespec tim, tim2;
         tim.tv_sec = 0;
