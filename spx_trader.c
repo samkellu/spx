@@ -42,12 +42,12 @@ int main(int argc, char ** argv) {
         double nsec = 1000000000 * (pow(1.3, exponent)/4);
         exponent += 0.7;
 
+        kill(ppid, SIGUSR1);
         struct timespec tim, tim2;
         tim.tv_sec = 0;
         tim.tv_nsec = nsec;
         nanosleep(&tim , &tim2);
 
-        kill(ppid, SIGUSR1);
         // Break, in the event that the exponent has become excessively large
         if (exponent == 10) {
           valid = 1;
