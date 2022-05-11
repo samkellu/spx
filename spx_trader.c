@@ -28,6 +28,7 @@ int main(int argc, char ** argv) {
 
     int order_id = 0;
     int valid = 1;
+    int exponent = 1;
 
     while (running) {
 
@@ -37,8 +38,14 @@ int main(int argc, char ** argv) {
         kill(ppid, SIGUSR1);
         struct timespec tim, tim2;
         tim.tv_sec = 0;
-        tim.tv_nsec = 10000;
+        double nsec = 1000000000 * pow(0.5, exponent++);
+        tim.tv_nsec = nsec;
         nanosleep(&tim , &tim2);
+
+        if (exponent > 10) {
+          valid = 1;
+          continue;
+        }
       }
 
       if (read_flag) {
