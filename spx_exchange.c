@@ -10,17 +10,16 @@
 int read_trader = -1;
 int init_flag = 0;
 int disconnect_trader = -1;
-int exit_flag = 0;
 long total_fees = 0;
 
 // Signal handler for SIGUSR1 (read pipe), SIGUSR2 (invalid binary) and SIGCHLD (trader disconnected)
 void read_sig(int signo, siginfo_t *si, void *uc) {
 	if (signo == SIGUSR1) {
 		read_trader = si->si_pid;
-	} else if (signo == SIGUSR2) {
-		exit_flag = 1;
 	} else if (signo == SIGCHLD) {
 		disconnect_trader = si->si_pid;
+	} else if (signo == SIGKILL) {
+		exit(0);
 	}
 }
 
@@ -508,22 +507,24 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 	}
 
 	// If the process is the parent, returns the new trader struct
-	if (new_trader->pid > 0) {
+	if (new_trader->pid != 0) {
 
 		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
 		return new_trader;
-	}
 
-	// If the process is the child, formats command line arguments and execs to start the new process
-	char trader_id[MAX_TRADERS_BYTES];
-	sprintf(trader_id, "%d", index);
-	if (execl(path, path, trader_id, NULL) == -1) {
-		// Sends a fail signal to the parent and exits if the binary failed to start
-		kill(getppid(), SIGUSR2);
-		kill(getpid(), 9);
+	} else if (new_trader->pid > 0){
+		// If the process is the child, formats command line arguments and execs to start the new process
+		char trader_id[MAX_TRADERS_BYTES];
+		sprintf(trader_id, "%d", index);
+		execl(path, path, trader_id, NULL);
+	} else {
+		fprintf(stderr, "Fork failed\n");
+		free(new_trader->position_qty);
+		free(new_trader->position_cost);
+		free(new_trader);
 		return NULL;
 	}
-	return new_trader;
+	return NULL;
 }
 
 // Creates a named pipe at the desired location
@@ -754,7 +755,7 @@ int main(int argc, char **argv) {
 
 	sigaction(SIGCLD, &sig_act, NULL);
 	sigaction(SIGUSR1, &sig_act, NULL);
-	sigaction(SIGUSR2, &sig_act, NULL);
+	sigaction(SIGKILL, &sig_act, NULL);
 
 	// Creates array to store all traders
 	struct trader** traders = malloc(sizeof(struct trader) * (argc - 1));
@@ -778,14 +779,8 @@ int main(int argc, char **argv) {
 		// Starts trader processes specified by command line arguments
 		traders[trader-2] = initialise_trader(argv[trader], trader-2, strtol(products[0], NULL, 10));
 
-		// Waits for invalid binary signal
-		struct timespec tim, tim2;
-		tim.tv_sec = 0;
-		tim.tv_nsec = 20000;
-		nanosleep(&tim , &tim2);
-
 		// Gracefully exists in the event that a trader could not be started
-		if (exit_flag == 1 || traders[trader-2] == NULL) {
+		if (traders[trader-2] == NULL) {
 			printf("%s Error: Given trader binary is invalid\n", LOG_PREFIX);
 			int num_products = strtol(products[0], NULL, 10);
 			for (int cursor = 0; cursor <= num_products; cursor++) {
@@ -800,6 +795,12 @@ int main(int argc, char **argv) {
 				free(traders[cursor++]);
 			}
 			free(traders);
+			printf("fuck");
+			fflush(stdout);
+			kill(SIGKILL, getppid());
+			kill(SIGKILL, getpid());
+			printf("%d\n", getpid());
+			printf("%d", getppid());
 			return -1;
 		}
 
