@@ -36,7 +36,7 @@ int main(int argc, char ** argv) {
 
   int order_id = 0;
   int counter = 0;
-  while (counter++ < 2000) {
+  while (counter++ < 4000) {
 
     struct timespec tim, tim2;
     tim.tv_sec = 0;
