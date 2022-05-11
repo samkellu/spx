@@ -814,7 +814,7 @@ int main(int argc, char **argv) {
 	// Sending MARKET OPEN message to all exchange pipes
 	int cursor = 0;
 	while (traders[cursor] != NULL) {
-		write_pipe(traders[cursor++]->exchange_fd, "MARKET OPEN;");
+		write_pipe(traders[cursor]->exchange_fd, "MARKET OPEN;");
 		kill(traders[cursor++]->pid, SIGUSR1);
 	}
 
