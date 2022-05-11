@@ -6,8 +6,7 @@ NC='\033[0m'
 
 test_name="invalid_binary"
 
-./spx_exchange "products.txt" "invalid_binary" &> tests/e2e/$test_name/$test_name.out
-./spx_exchange "products.txt" "invalid_binary" &> tests/e2e/$test_name/$test_name.test
+./spx_exchange "products.txt" "invalid_binary" | tee tests/e2e/$test_name/$test_name.test
 
 diff tests/e2e/$test_name/$test_name.out tests/e2e/$test_name/$test_name.test && echo -e "${GREEN}Test $test_name passed.${NC}" || echo -e "${RED}Test $test_name failed.${NC}"
 

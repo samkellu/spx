@@ -24,86 +24,68 @@ int main(int argc, char ** argv) {
   int trader_fd = open(path, O_WRONLY);
 
   char orders[11][MAX_INPUT] = {"SELL 0 GPU 30 500;", "SELL 1 GPU 30 501;", "SELL 2 GPU 30 501;"\
-                  ,"SELL 3 GPU 30 502;", "SELL 4 Router 22 51;", "CANCEL 0;", "AMEND 1 30 502;", \
+                  ,"SELL 3 GPU 30 502;", "SELL 4 Router 22 51;", "CANCEL 3;", "AMEND 1 30 502;", \
                   "AMEND 2 30 503;","AMEND 3 30 504;", "AMEND 4 22 505;",
                   "SELL 5 Router 100000 100000;"};
 
   int order_id = 0;
-  int market_open = 0;
+  char* all_recv = malloc(8192);
+  int cursor = 0;
+  int counter = 0;
 
-  while (running) {
+  while (counter++ < 5000) {
 
     struct timespec tim, tim2;
     tim.tv_sec = 0;
-    tim.tv_nsec = 1000;
+    tim.tv_nsec = 100000;
     nanosleep(&tim , &tim2);
 
     if (read_flag) {
 
       read_flag = 0;
-      char buf[MAX_INPUT] = "";
-      char* token;
+      counter = 0;
+      char* line_tok;
+      char buf[MAX_INPUT];
 
       read(exchange_fd, buf, MAX_INPUT);
 
-      fprintf(f,"[Trader %d] Received from SPX: %s\n", id, buf);
+      line_tok = strtok(buf, ";");
+      while (line_tok != NULL) {
+        char* tmp = malloc(2*MAX_INPUT);
+        snprintf(tmp, 2*MAX_INPUT, "[Trader %d] Received from SPX: %s;\n", id, buf);
 
-      token = strtok(buf, " ");
-      if (!market_open) {
-        if (strcmp(buf, "MARKET") == 0) {
-          market_open = 1;
-        }
-      }
-
-      if (market_open && (strcmp(token, "MARKET") == 0 || strcmp(token, "ACCEPTED") == 0 || strcmp(token, "INVALID;") == 0 || strcmp(token, "AMENDED") == 0 || strcmp(token, "CANCELLED") == 0)) {
-        if (strcmp(token, "MARKET") != 0) {
-          struct timespec tim, tim2;
-          tim.tv_sec = 0;
-          tim.tv_nsec = 100;
-          nanosleep(&tim , &tim2);
-        }
-
-        char* msg = malloc(MAX_INPUT);
-        snprintf(msg, strlen(orders[order_id]) + 1, "%s", orders[order_id]);
-        fflush(stdout);
-        write(trader_fd, msg, strlen(msg));
-        kill(ppid, SIGUSR1);
-        fprintf(f, "[Trader %d] Event: %s\n", id, msg);
-        order_id++;
-        free(msg);
+        snprintf(all_recv + cursor, strlen(tmp) + 1, "%s", tmp);
+        cursor += strlen(tmp) + 1;
+        free(tmp);
+        line_tok = strtok(NULL, ";");
       }
     }
 
-    if (order_id >= 11) {
-      int counter = 0;
+    if (counter > 800 && order_id < 11) {
+      char* msg = malloc(MAX_INPUT);
+      snprintf(msg, MAX_INPUT, "%s", orders[order_id]);
+      write(trader_fd, msg, strlen(msg));
+      kill(ppid, SIGUSR1);
+      fprintf(f, "[Trader %d] Event: %s\n", id, msg);
 
-      while (counter++ < 100) {
-
-        int* stay_awake = malloc(0);
-        struct timespec tim, tim2;
-        tim.tv_sec = 0;
-        tim.tv_nsec = 10000;
-        nanosleep(&tim , &tim2);
-
-        if (read_flag) {
-          read_flag = 0;
-          counter = 0;
-          char buf[MAX_INPUT] = "";
-
-          read(exchange_fd, buf, MAX_INPUT);
-
-          fprintf(f,"[Trader %d] Received from SPX: %s\n", id, buf);
-        }
-        free(stay_awake);
-      }
-      fclose(f);
-      close(exchange_fd);
-      close(trader_fd);
-      return 0;
+      order_id++;
+      fflush(stdout);
+      free(msg);
+      counter = 0;
     }
   }
+
+  fprintf(f, "\n\nSPX ---> TRADER\n\n");
+  for (int x = 0; x < 8192; x++) {
+    if (all_recv[x] >= 0 && all_recv[x] <= 177){
+      if (all_recv[x] == '\t') {
+        continue;
+      }
+      fprintf(f, "%c", all_recv[x]);
+    }
+  }
+  free(all_recv);
+  sleep(5);
   fclose(f);
-  close(exchange_fd);
-  close(trader_fd);
   return 0;
-}
+  }

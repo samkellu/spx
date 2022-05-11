@@ -24,76 +24,70 @@ int main(int argc, char ** argv) {
   sprintf(path, "/tmp/spx_trader_%d", id);
   int trader_fd = open(path, O_WRONLY);
 
-  char orders[10][MAX_INPUT] = {"BUY 0 GPU 30 50;", "SELL 1 Router 20 30;", "SELL 2 GPU 30 20;",\
-                  "SELL 3 GPU 100 100;", "AMEND 3 30 30;", "CANCEL 1;", "CANCEL 12;",\
-                  "AMEND 1 2 3;", "SELL 4 Router 20 30;", "BUY 5 Router 20 30;"};
-  int order_id = 0;
-  while (running) {
+  char orders[20][MAX_INPUT] = {"SELL 0 GPU 30 500;", "SELL 1 GPU 30 501;", "SELL 2 GPU 30 501;", \
+                  "SELL 3 GPU 30 502;", "SELL 4 Router 22 51;", "CANCEL 3;", "AMEND 1 30 502;", \
+                  "AMEND 2 30 503;","AMEND 3 30 504;", "AMEND 4 22 505;", \
+                  "SELL 5 Router 10 100;", "BUY 6 GPU 30 50;", "SELL 7 Router 20 30;", "SELL 8 Router 1 1;", \
+                  "SELL 9 GPU 100 100;", "AMEND 6 30 30;", "CANCEL 1;", "CANCEL 12;", \
+                  "BUY 10 Router 1000 1;", "BUY 11 Router 100 1000;"};
 
-    if (read_flag) {
+  char* all_recv = malloc(8192);
+  int cursor = 0;
+
+  int order_id = 0;
+  int counter = 0;
+  while (counter++ < 2000) {
+
+    struct timespec tim, tim2;
+    tim.tv_sec = 0;
+    tim.tv_nsec = 10000;
+    nanosleep(&tim , &tim2);
+
+    if (read_flag && counter > 200) {
 
       read_flag = 0;
-      char buf[MAX_INPUT] = "";
-      char* token;
+      counter = 0;
+      char* line_tok;
+      char buf[2*MAX_INPUT];
 
-      read(exchange_fd, buf, MAX_INPUT);
-
-      token = strtok(buf, ";");
-      while (token != NULL) {
-        fprintf(f,"[Trader %d] Received from SPX: %s;\n", id, token);
-        token = strtok(NULL, ";");
+      if (read(exchange_fd, buf, MAX_INPUT) <= 0) {
+        continue;
       }
 
-      token = strtok(buf, " ");
-      if (!market_open) {
-        if (strcmp(buf, "MARKET") == 0) {
-          market_open = 1;
-        }
-      }
-
-      if (market_open && (strcmp(token, "FILL") == 0 || strcmp(token, "MARKET") == 0 || strcmp(token, "ACCEPTED") == 0 || strcmp(token, "INVALID") == 0 || strcmp(token, "AMENDED") == 0 || strcmp(token, "CANCELLED") == 0)) {
-
-        char* msg = malloc(MAX_INPUT);
-        snprintf(msg, MAX_INPUT, "%s", orders[order_id]);
-        write(trader_fd, msg, strlen(msg));
-        kill(ppid, SIGUSR1);
-        fprintf(f, "[Trader %d] Event: %s\n", id, msg);
-        order_id++;
-        free(msg);
+      line_tok = strtok(buf, ";");
+      while (line_tok != NULL) {
+        char* tmp = malloc(4*MAX_INPUT);
+        snprintf(tmp, 4*MAX_INPUT, "[Trader %d] Received from SPX: %s;\n", id, buf);
+        snprintf(all_recv + cursor, strlen(tmp) + 1, "%s", tmp);
+        cursor += strlen(tmp) + 1;
+        free(tmp);
+        line_tok = strtok(NULL, ";");
       }
     }
 
-    if (order_id == 10) {
-      int counter = 0;
+    if (counter > 800 && order_id < 20) {
+      char* msg = malloc(MAX_INPUT);
+      snprintf(msg, MAX_INPUT, "%s", orders[order_id]);
+      write(trader_fd, msg, strlen(msg));
+      kill(ppid, SIGUSR1);
+      fprintf(f, "[Trader %d] Event: %s\n", id, msg);
 
-      while (counter++ < 100) {
-
-        int* stay_awake = malloc(0);
-        struct timespec tim, tim2;
-        tim.tv_sec = 0;
-        tim.tv_nsec = 10000;
-        nanosleep(&tim , &tim2);
-
-        if (read_flag) {
-          read_flag = 0;
-          counter = 0;
-          char buf[MAX_INPUT] = "";
-          char* token;
-
-          read(exchange_fd, buf, MAX_INPUT);
-
-          token = strtok(buf, ";");
-          while (token != NULL) {
-            fprintf(f,"[Trader %d] Received from SPX: %s;\n", id, token);
-            token = strtok(NULL, ";");
-          }
-        }
-        free(stay_awake);
-      }
-      fclose(f);
-      return 0;
+      order_id++;
+      free(msg);
+      counter = 0;
     }
   }
+  fprintf(f, "\n\nSPX ---> TRADER\n\n");
+  for (int x = 0; x < 8192; x++) {
+    if (all_recv[x] >= 0 && all_recv[x] <= 177){
+      if (all_recv[x] == '\t') {
+        continue;
+      }
+      fprintf(f, "%c", all_recv[x]);
+    }
+  }
+  free(all_recv);
+  sleep(4);
   fclose(f);
   return 0;
 }
