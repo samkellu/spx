@@ -67,7 +67,11 @@ int main(int argc, char ** argv) {
           char* msg = malloc(MAX_INPUT);
           snprintf(msg, MAX_INPUT, "BUY %d %s %s %s", order_id++, args[2], args[3], args[4]);
           write(trader_fd, msg, strlen(msg));
-          kill(ppid, SIGUSR1);
+
+          for (int x = 0; x < 5; x++) {
+            kill(ppid, SIGUSR1);
+          }
+          
           free(msg);
         }
 
