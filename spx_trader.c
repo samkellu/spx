@@ -41,7 +41,7 @@ int main(int argc, char ** argv) {
         // as they are re-sent at exponentially increasing intervals until they are
         // received
         kill(ppid, SIGUSR1);
-        double nsec = 100000000 * (pow(1.3, exponent++)/4);
+        double nsec = 10000000 * (pow(1.3, exponent++)/4);
 
         struct timespec tim, tim2;
         tim.tv_sec = 0;
