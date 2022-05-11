@@ -39,7 +39,6 @@ int main(int argc, char ** argv) {
         // Exponential back-off function helps minimise the effect of lost signals,
         // as they are re-sent at exponentially increasing intervals until they are
         // received
-        kill(ppid, SIGUSR1);
         double nsec = 1000000000 * (pow(1.3, exponent++)/4);
 
         struct timespec tim, tim2;
@@ -47,6 +46,7 @@ int main(int argc, char ** argv) {
         tim.tv_nsec = nsec;
         nanosleep(&tim , &tim2);
 
+        kill(ppid, SIGUSR1);
         // Break, in the event that the exponent has become excessively large
         if (exponent == 10) {
           valid = 1;
