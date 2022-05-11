@@ -522,6 +522,7 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 		free(new_trader->position_qty);
 		free(new_trader->position_cost);
 		free(new_trader);
+		exit(0);
 		return NULL;
 	}
 	return NULL;
@@ -779,30 +780,30 @@ int main(int argc, char **argv) {
 		// Starts trader processes specified by command line arguments
 		traders[trader-2] = initialise_trader(argv[trader], trader-2, strtol(products[0], NULL, 10));
 
-		// Gracefully exists in the event that a trader could not be started
-		if (traders[trader-2] == NULL) {
-			printf("%s Error: Given trader binary is invalid\n", LOG_PREFIX);
-			int num_products = strtol(products[0], NULL, 10);
-			for (int cursor = 0; cursor <= num_products; cursor++) {
-				free(products[cursor]);
-			}
-			free(products);
-
-			int cursor = 0;
-			while (traders[cursor] != NULL) {
-				free(traders[cursor]->position_qty);
-				free(traders[cursor]->position_cost);
-				free(traders[cursor++]);
-			}
-			free(traders);
-			printf("fuck");
-			fflush(stdout);
-			kill(SIGKILL, getppid());
-			kill(SIGKILL, getpid());
-			printf("%d\n", getpid());
-			printf("%d", getppid());
-			return -1;
-		}
+		// // Gracefully exists in the event that a trader could not be started
+		// if (traders[trader-2] == NULL) {
+		// 	printf("%s Error: Given trader binary is invalid\n", LOG_PREFIX);
+		// 	int num_products = strtol(products[0], NULL, 10);
+		// 	for (int cursor = 0; cursor <= num_products; cursor++) {
+		// 		free(products[cursor]);
+		// 	}
+		// 	free(products);
+		//
+		// 	int cursor = 0;
+		// 	while (traders[cursor] != NULL) {
+		// 		free(traders[cursor]->position_qty);
+		// 		free(traders[cursor]->position_cost);
+		// 		free(traders[cursor++]);
+		// 	}
+		// 	free(traders);
+		// 	printf("fuck");
+		// 	fflush(stdout);
+		// 	kill(SIGKILL, getppid());
+		// 	kill(SIGKILL, getpid());
+		// 	printf("%d\n", getpid());
+		// 	printf("%d", getppid());
+		// 	return -1;
+		// }
 
 		// Connects to each named pipe
 		traders[trader-2]->exchange_fd = open(exchange_path, O_WRONLY);
