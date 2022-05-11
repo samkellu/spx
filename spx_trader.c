@@ -36,6 +36,7 @@ int main(int argc, char ** argv) {
         char* token;
         char** args = malloc(0);
         int arg_counter = 0;
+        int valid = 0;
 
         read(exchange_fd, buf, MAX_INPUT);
 
@@ -55,6 +56,13 @@ int main(int argc, char ** argv) {
           token = strtok(NULL, " ");
         }
 
+        if (strcmp(args[0], "ACCEPTED") == 0) {
+          if (strtol(args[1], NULL, 10) == order_id) {
+            valid = 1;
+            order_id++;
+          }
+        }
+
         if (strcmp(args[1], "SELL") == 0) {
           if (strtol(args[3], NULL, 10) >= QTY_LIMIT) {
             for (int arg_num = 0; arg_num < arg_counter; arg_num++) {
@@ -64,15 +72,17 @@ int main(int argc, char ** argv) {
             return 0;
           }
           // +++ should be checking whether the order is accepted and resending if revoked.
-          char* msg = malloc(MAX_INPUT);
-          snprintf(msg, MAX_INPUT, "BUY %d %s %s %s", order_id++, args[2], args[3], args[4]);
-          write(trader_fd, msg, strlen(msg));
+          if (valid) {
+            char* msg = malloc(MAX_INPUT);
+            valid = 0;
+            snprintf(msg, MAX_INPUT, "BUY %d %s %s %s", order_id, args[2], args[3], args[4]);
+            write(trader_fd, msg, strlen(msg));
+            kill(ppid, SIGUSR1);
+            free(msg);
 
-          for (int x = 0; x < 5; x++) {
+          } else {
             kill(ppid, SIGUSR1);
           }
-          
-          free(msg);
         }
 
         for (int arg_num = 0; arg_num < arg_counter; arg_num++) {
