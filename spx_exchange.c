@@ -90,7 +90,7 @@ struct order** create_order(int type, char** products, struct trader* trader, in
 
 	// Preparing messages to send to traders regarding the new order
 	char* market_msg = malloc(MAX_INPUT);
-	snprintf(market_msg, MAX_INPUT, "MARKET %s %s %d %d;", type_str, new_order->product, new_order->qty, new_order->price);
+	sprintf(market_msg, "MARKET %s %s %d %d;", type_str, new_order->product, new_order->qty, new_order->price);
 	// Writes messages to all traders other than the initiating trader
 	int index = 0;
 	while (traders[index] != NULL) {
@@ -516,7 +516,7 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 
 	// If the process is the child, formats command line arguments and execs to start the new process
 	char trader_id[MAX_TRADERS_BYTES];
-	snprintf(trader_id, MAX_TRADERS_BYTES, "%d", index);
+	sprintf(trader_id, "%d", index);
 	if (execl(path, path, trader_id, NULL) == -1) {
 		// Sends a fail signal to the parent and exits if the binary failed to start
 		kill(getppid(), SIGUSR2);
@@ -835,8 +835,8 @@ int main(int argc, char **argv) {
 
 		// Locates the trader that wrote to the exchange via PID
 		if (read_trader != -1) {
-
 			char** arg_array;
+
 			int cursor = 0;
 			while (traders[cursor] != NULL) {
 				if (traders[cursor]->pid == read_trader && traders[cursor]->active) {
@@ -890,7 +890,7 @@ int main(int argc, char **argv) {
 				if (traders[cursor]->active) {
 					// Inform the trader that their order was invalid
 					char* msg = malloc(MAX_INPUT);
-					snprintf(msg, MAX_INPUT, "INVALID;");
+					sprintf(msg, "INVALID;");
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
 					free(msg);
@@ -915,7 +915,7 @@ int main(int argc, char **argv) {
 
 				qty = strtol(arg_array[3], NULL, 10);
 				price = strtol(arg_array[4], NULL, 10);
-				snprintf(msg, MAX_INPUT, "ACCEPTED %s;", arg_array[1]);
+				sprintf(msg, "ACCEPTED %s;", arg_array[1]);
 
 				// Checks validity of the given product and id
 				for (int product = 1; product <= strtol(products[0], NULL, 10); product++) {
@@ -943,13 +943,13 @@ int main(int argc, char **argv) {
 
 					qty = strtol(arg_array[2], NULL, 10);
 					price = strtol(arg_array[3], NULL, 10);
-					snprintf(msg, MAX_INPUT, "AMENDED %s;", arg_array[1]);
+					sprintf(msg, "AMENDED %s;", arg_array[1]);
 
 				} else if (valid_num_args == 2) { // CANCEL case: <CANCEL> <order_id>
 
 					qty_valid = 1;
 					price_valid = 1;
-					snprintf(msg, MAX_INPUT, "CANCELLED %s;", arg_array[1]);
+					sprintf(msg, "CANCELLED %s;", arg_array[1]);
 				}
 			}
 
@@ -991,7 +991,7 @@ int main(int argc, char **argv) {
 			} else {
 				if (traders[cursor]->active) {
 					// Inform the trader that their order was invalid
-					snprintf(msg, MAX_INPUT, "INVALID;");
+					sprintf(msg, "INVALID;");
 					write_pipe(traders[cursor]->exchange_fd, msg);
 					kill(traders[cursor]->pid, SIGUSR1);
 					free(msg);
