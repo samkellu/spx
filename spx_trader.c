@@ -40,11 +40,11 @@ int main(int argc, char ** argv) {
         kill(ppid, SIGUSR1);
         struct timespec tim, tim2;
         tim.tv_sec = 0;
-        double nsec = 100000000 * (pow(2, exponent++)/16);
+        double nsec = 1000000000 * (pow(1.3, exponent++)/4);
         tim.tv_nsec = nsec;
         nanosleep(&tim , &tim2);
 
-        if (exponent == 5) {
+        if (exponent == 10) {
           valid = 1;
           exponent = 0;
           continue;
@@ -99,13 +99,12 @@ int main(int argc, char ** argv) {
 
             valid = 0;
             exponent = 0;
-            
+
             char* msg = malloc(MAX_INPUT);
             snprintf(msg, MAX_INPUT, "BUY %d %s %s %s", order_id, args[2], args[3], args[4]);
             write(trader_fd, msg, strlen(msg));
             kill(ppid, SIGUSR1);
             free(msg);
-
           }
         }
 
