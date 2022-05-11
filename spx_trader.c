@@ -31,6 +31,10 @@ int main(int argc, char ** argv) {
 
     while (running) {
 
+      if (valid) {
+        pause();
+      }
+      
       if (read_flag) {
 
         read_flag = 0;
