@@ -2,6 +2,7 @@
 #include "spx_common.h"
 
 int read_flag = 0;
+int running = 1;
 int market_open = 0;
 
 void sig_read(int errno) {
@@ -27,9 +28,9 @@ int main(int argc, char ** argv) {
 
     int order_id = 0;
     int valid = 1;
-    float exponent = 1;
+    int exponent = 1;
 
-    while (1) {
+    while (running) {
 
       if (valid) {
         pause();
@@ -39,10 +40,9 @@ int main(int argc, char ** argv) {
         // Exponential back-off function helps minimise the effect of lost signals,
         // as they are re-sent at exponentially increasing intervals until they are
         // received
-        double nsec = 1000000000 * (pow(1.3, exponent)/4);
-        exponent += 0.7;
-
         kill(ppid, SIGUSR1);
+        double nsec = 1000000000 * (pow(1.3, exponent++)/4);
+
         struct timespec tim, tim2;
         tim.tv_sec = 0;
         tim.tv_nsec = nsec;
@@ -99,7 +99,7 @@ int main(int argc, char ** argv) {
             free(args);
             return 0;
           }
-
+          // +++ should be checking whether the order is accepted and resending if revoked.
           if (valid) {
 
             valid = 0;

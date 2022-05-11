@@ -507,16 +507,10 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 		return NULL;
 	}
 
-	// If the process is the parent, prints the start message, waits for a signal in case the binary couldnt
-	// start correctly, then returns the new trader struct
+	// If the process is the parent, returns the new trader struct
 	if (new_trader->pid > 0) {
 
 		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
-		struct timespec tim, tim2;
-		tim.tv_sec = 0;
-		tim.tv_nsec = 10000;
-		nanosleep(&tim , &tim2);
-
 		return new_trader;
 	}
 
@@ -751,7 +745,6 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-
 	// Sets up signal handlers
 	struct sigaction sig_act;
 
@@ -784,6 +777,12 @@ int main(int argc, char **argv) {
 
 		// Starts trader processes specified by command line arguments
 		traders[trader-2] = initialise_trader(argv[trader], trader-2, strtol(products[0], NULL, 10));
+
+		// Waits for invalid binary signal
+		struct timespec tim, tim2;
+		tim.tv_sec = 0;
+		tim.tv_nsec = 10000000;
+		nanosleep(&tim , &tim2);
 
 		// Gracefully exists in the event that a trader could not be started
 		if (exit_flag == 1 || traders[trader-2] == NULL) {
