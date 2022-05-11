@@ -515,7 +515,7 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
 		struct timespec tim, tim2;
 		tim.tv_sec = 0;
-		tim.tv_nsec = 300000;
+		tim.tv_nsec = 10000;
 		nanosleep(&tim , &tim2);
 
 		return new_trader;
