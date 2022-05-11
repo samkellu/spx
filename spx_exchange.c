@@ -837,9 +837,11 @@ int main(int argc, char **argv) {
 
 		// Locates the trader that wrote to the exchange via PID
 		if (read_trader != -1) {
-			char** arg_array;
+			// Reset global flag
+			read_trader = -1;
 
 			int cursor = 0;
+			char** arg_array;
 			while (traders[cursor] != NULL) {
 				if (traders[cursor]->pid == read_trader && traders[cursor]->active) {
 					// Get input arguments from the trader's named pipe
@@ -848,8 +850,6 @@ int main(int argc, char **argv) {
 				}
 				cursor++;
 			}
-			// Reset global flag
-			read_trader = -1;
 
 			// Breaks if the returned arguments are invalid, or the trader doesnt exist
 			if (arg_array == NULL || traders[cursor] == NULL) {
