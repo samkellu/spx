@@ -63,7 +63,6 @@ struct order** create_order(int type, char** products, struct trader* trader, in
 			if (orders[cursor]->trader == new_order->trader && orders[cursor]->order_id == new_order->order_id) {
 				new_order->type = orders[cursor]->type;
 				memcpy(new_order->product, orders[cursor]->product, PRODUCT_LENGTH);
-				fflush(stdout);
 				break;
 			}
 			cursor++;
@@ -515,7 +514,7 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 		printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
 		struct timespec tim, tim2;
 		tim.tv_sec = 0;
-		tim.tv_nsec = 1000;
+		tim.tv_nsec = 50000000;
 		nanosleep(&tim , &tim2);
 
 		return new_trader;
