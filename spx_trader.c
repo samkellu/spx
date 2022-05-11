@@ -2,7 +2,6 @@
 #include "spx_common.h"
 
 int read_flag = 0;
-int running = 1;
 int market_open = 0;
 
 void sig_read(int errno) {
@@ -30,7 +29,7 @@ int main(int argc, char ** argv) {
     int valid = 1;
     int exponent = 1;
 
-    while (running) {
+    while (1) {
 
       if (valid) {
         pause();
@@ -99,7 +98,7 @@ int main(int argc, char ** argv) {
             free(args);
             return 0;
           }
-          // +++ should be checking whether the order is accepted and resending if revoked.
+          
           if (valid) {
 
             valid = 0;
