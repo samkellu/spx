@@ -216,11 +216,6 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		cheapest_sell->trader->position_qty[pos_index] -= qty;
 		cheapest_sell->trader->position_cost[pos_index] += cost;
 
-		struct timespec tim, tim2;
-		tim.tv_sec = 0;
-		tim.tv_nsec = 100000;
-		nanosleep(&tim , &tim2);
-
 		if (new_order->trader->active) {
 			// Inform initiating trader that their order has been filled
 			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
@@ -326,11 +321,6 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		// Update position values
 		highest_buy->trader->position_qty[pos_index] += qty;
 		highest_buy->trader->position_cost[pos_index] -= cost;
-
-		struct timespec tim, tim2;
-		tim.tv_sec = 0;
-		tim.tv_nsec = 100000;
-		nanosleep(&tim , &tim2);
 
 		if (new_order->trader->active) {
 			// inform initiating trader that their order has been fulfilled
@@ -791,7 +781,7 @@ int main(int argc, char **argv) {
 		// Waits for invalid binary signal
 		struct timespec tim, tim2;
 		tim.tv_sec = 0;
-		tim.tv_nsec = 10000000;
+		tim.tv_nsec = 20000;
 		nanosleep(&tim , &tim2);
 
 		// Gracefully exists in the event that a trader could not be started
