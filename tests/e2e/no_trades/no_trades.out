@@ -1,4 +1,4 @@
-[Trader 0] Received from SPX: MARKET OPEN;MARKET OPEN;[SPX] Starting
+[SPX] Starting
 [SPX] Trading 2 products: GPU Router
 [SPX] Created FIFO /tmp/spx_exchange_0
 [SPX] Created FIFO /tmp/spx_trader_0

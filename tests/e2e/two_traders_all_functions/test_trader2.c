@@ -29,6 +29,11 @@ int main(int argc, char ** argv) {
     int order_id = 0;
 
     while (running) {
+
+      if (!read_flag) {
+        pause();
+      }
+
       if (read_flag) {
 
         read_flag = 0;
