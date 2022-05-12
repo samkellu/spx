@@ -519,7 +519,7 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 		// Waits to catchj failure signal
 		struct timespec tim, tim2;
 		tim.tv_sec = 0;
-		tim.tv_nsec = 10000;
+		tim.tv_nsec = 100000;
 		nanosleep(&tim , &tim2);
 
 		return new_trader;
@@ -767,7 +767,7 @@ int main(int argc, char **argv) {
 	sigemptyset(&sig_act.sa_mask);
 	sig_act.sa_flags = SA_RESTART | SA_SIGINFO;
 
-	sigaction(SIGCLD, &sig_act, NULL);
+	sigaction(SIGCHLD, &sig_act, NULL);
 	sigaction(SIGUSR1, &sig_act, NULL);
 	sigaction(SIGUSR2, &sig_act, NULL);
 
