@@ -10,7 +10,7 @@ void sig_read(int errno) {
 }
 
 int main(int argc, char ** argv) {
-  
+
     if (argc < 2) {
         printf("Not enough arguments\n");
         return 1;
@@ -66,7 +66,9 @@ int main(int argc, char ** argv) {
         char** args = malloc(0);
         int arg_counter = 0;
 
-        read(exchange_fd, buf, MAX_INPUT);
+        if (read(exchange_fd, buf, MAX_INPUT) < MIN_READ) {
+          continue;
+        }
 
         if (!market_open) {
           if (strcmp(buf, "MARKET OPEN;") == 0) {
