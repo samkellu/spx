@@ -2,7 +2,6 @@
 #include "spx_common.h"
 
 int read_flag = 0;
-int market_open = 0;
 
 void sig_read(int errno) {
   read_flag = 1;
@@ -35,6 +34,7 @@ int main(int argc, char ** argv) {
     while (1) {
 
       if (valid) {
+        exponent = 0;
         pause();
 
       } else {
@@ -52,7 +52,6 @@ int main(int argc, char ** argv) {
 
         // Break, in the event that the exponent has become excessively large
         if (exponent == 10) {
-          valid = 1;
           exponent = 0;
           return -1;
         }
@@ -68,13 +67,6 @@ int main(int argc, char ** argv) {
 
         if (read(exchange_fd, buf, MAX_INPUT) < MIN_READ) {
           continue;
-        }
-
-        if (!market_open) {
-          if (strcmp(buf, "MARKET OPEN;") == 0) {
-            market_open = 1;
-            continue;
-          }
         }
 
         token = strtok(buf, " ");
@@ -103,11 +95,10 @@ int main(int argc, char ** argv) {
             free(args);
             return 0;
           }
-          // +++ should be checking whether the order is accepted and resending if revoked.
+
           if (valid) {
 
             valid = 0;
-            exponent = 0;
 
             char* msg = malloc(MAX_INPUT);
             snprintf(msg, MAX_INPUT, "BUY %d %s %s %s", order_id, args[2], args[3], args[4]);
