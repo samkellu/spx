@@ -14,6 +14,10 @@ testing: clean spx_exchange.c spx_common.h spx_exchange.h
 
 	$(CC) -o tests/unit-tests tests/unit-tests.c tests/libcmocka-static.a -fprofile-arcs -ftest-coverage $(CFLAGS) $(LDFLAGS)
 
+.PHONY: e2etesting
+e2etesting: clean spx_exchange.c spx_common.h spx_exchange.h
+
+	$(CC) -o spx_exchange spx_exchange.c -fprofile-arcs -ftest-coverage $(CFLAGS) $(LDFLAGS)
 
 .PHONY: clean
 clean:

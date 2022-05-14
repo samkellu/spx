@@ -13,6 +13,7 @@ int disconnect_trader = -1;
 int exit_flag = 0;
 long total_fees = 0;
 
+#ifndef TESTING
 // Signal handler for SIGUSR1 (read pipe), SIGUSR2 (invalid binary) and SIGCHLD (trader disconnected)
 void read_sig(int signo, siginfo_t *si, void *uc) {
 	if (signo == SIGUSR1) {
@@ -23,6 +24,7 @@ void read_sig(int signo, siginfo_t *si, void *uc) {
 		exit_flag = 1;
 	}
 }
+#endif
 
 // Writes a message to a given pipe file descriptor
 int write_pipe(int fd, char* message) {
@@ -36,7 +38,6 @@ int write_pipe(int fd, char* message) {
 	}
 	return -1;
 }
-
 // Creates an order as specified by a trader connected to the exchange
 struct order** create_order(int type, char** products, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, \
 															struct order**, int), struct order** orders, struct trader** traders, int time) {
@@ -200,17 +201,12 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		cheapest_sell->trader->id, new_order->order_id, new_order->trader->id, cost, fee);
 
 		char msg[MAX_INPUT];
-		char path[PATH_LENGTH];
-		int fd;
 
 		if (cheapest_sell->trader->active) {
 			// Inform trader that their order has been filled
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, cheapest_sell->trader->id);
-			fd = open(path, O_WRONLY);
 			snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->order_id, qty);
-			write_pipe(fd, msg);
+			write_pipe(cheapest_sell->trader->exchange_fd, msg);
 			kill(cheapest_sell->trader->pid, SIGUSR1);
-			close(fd);
 		}
 		// Update position values
 		cheapest_sell->trader->position_qty[pos_index] -= qty;
@@ -218,12 +214,9 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 
 		if (new_order->trader->active) {
 			// Inform initiating trader that their order has been filled
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
-			fd = open(path, O_WRONLY);
 			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
-			write_pipe(fd, msg);
+			write_pipe(new_order->trader->exchange_fd, msg);
 			kill(new_order->trader->pid, SIGUSR1);
-			close(fd);
 		}
 		// Update position values
 		new_order->trader->position_qty[pos_index] += qty;
@@ -306,17 +299,12 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		highest_buy->trader->id, new_order->order_id, new_order->trader->id, cost, fee);
 
 		char msg[MAX_INPUT];
-		char path[PATH_LENGTH];
-		int fd;
 
 		if (highest_buy->trader->active) {
 			// Inform trader that their order has been filled
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, highest_buy->trader->id);
-			fd = open(path, O_WRONLY);
 			snprintf(msg, MAX_INPUT, "FILL %d %d;", highest_buy->order_id, qty);
-			write_pipe(fd, msg);
+			write_pipe(highest_buy->trader->exchange_fd, msg);
 			kill(highest_buy->trader->pid, SIGUSR1);
-			close(fd);
 		}
 		// Update position values
 		highest_buy->trader->position_qty[pos_index] += qty;
@@ -324,12 +312,9 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 
 		if (new_order->trader->active) {
 			// inform initiating trader that their order has been fulfilled
-			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
-			fd = open(path, O_WRONLY);
 			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
-			write_pipe(fd, msg);
+			write_pipe(new_order->trader->exchange_fd, msg);
 			kill(new_order->trader->pid, SIGUSR1);
-			close(fd);
 		}
 
 		// Update position values
@@ -447,6 +432,7 @@ char** read_products_file(char* fp) {
 	return products;
 }
 
+#ifndef TESTING
 // Reads data from the desired fifo, returns an array of input arguments
 char** take_input(int fd) {
 
@@ -751,7 +737,6 @@ int disconnect(struct trader** traders, struct order** orders, char** products, 
 	return 0;
 }
 
-#ifndef TESTING
 // Runs the exchange
 int main(int argc, char **argv) {
 

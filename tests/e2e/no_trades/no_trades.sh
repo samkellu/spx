@@ -12,4 +12,6 @@ gcc tests/e2e/$test_name/test_trader.c -o tests/e2e/$test_name/test_trader -Wall
 
 diff tests/e2e/$test_name/$test_name.out tests/e2e/$test_name/$test_name.test && echo -e "${GREEN}Test $test_name passed.${NC}" || echo -e "${RED}Test $test_name failed.${NC}"
 
+gcov ./spx_exchange
+
 rm tests/e2e/$test_name/$test_name.test

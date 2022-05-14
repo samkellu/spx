@@ -16,6 +16,8 @@ diff tests/e2e/$test_name/$test_name.out tests/e2e/$test_name/$test_name.test &&
 diff tests/e2e/$test_name/trader1.out tests/e2e/$test_name/trader1.test && echo -e "${GREEN} $test_name Trader1 output correct.${NC}" || echo -e "${RED} $test_name Trader1 output incorrect.${NC}"
 diff tests/e2e/$test_name/trader2.out tests/e2e/$test_name/trader2.test && echo -e "${GREEN} $test_name Trader2 output correct.${NC}" || echo -e "${RED} $test_name Trader2 output incorrect.${NC}"
 
+gcov ./spx_exchange
+
 rm tests/e2e/$test_name/$test_name.test
 rm tests/e2e/$test_name/trader1.test
 rm tests/e2e/$test_name/trader2.test

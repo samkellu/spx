@@ -5,7 +5,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
-make
+make e2etesting
 
 for test in tests/e2e/*
 do
@@ -17,3 +17,13 @@ do
   bash $test/$test_name.sh
   echo "--------------------------------------------------"
 done
+
+make clean
+make testing
+
+tests/unit-tests
+
+gcov ./unit-tests.c
+
+make clean
+make
