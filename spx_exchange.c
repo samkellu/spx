@@ -50,6 +50,7 @@ struct order** create_order(int type, char** products, struct trader* trader, in
 	new_order->product = malloc(PRODUCT_LENGTH);
 	new_order->time = time;
 
+
 	if (product != NULL) {
 		memcpy(new_order->product, product, PRODUCT_LENGTH);
 	}
@@ -104,7 +105,6 @@ struct order** create_order(int type, char** products, struct trader* trader, in
 
 	// Completes the order with its provided function
 	orders = operation(new_order, orders, pos_index);
-
 	return orders;
 }
 
@@ -414,11 +414,16 @@ char** read_products_file(char* fp) {
 	while ((file_length - index) > 0) {
 
 		char* product = (char*) malloc(sizeof(char) * PRODUCT_LENGTH);
-		product = fgets(product, PRODUCT_LENGTH, file);
 
-		if (product == NULL) {
+		if (fgets(product, PRODUCT_LENGTH, file) == NULL) {
+			for (int p_num = 0; p_num < index; p_num++) {
+				free(products[p_num]);
+			}
+			free(products);
+			free(product);
 			return NULL;
 		}
+
 		// Checks for null or empty lines
 		if (product[0] == '\n' || product[0] == '\0' || product[0] == '\r') {
 			free(product);

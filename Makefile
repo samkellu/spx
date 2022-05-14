@@ -12,7 +12,7 @@ generate: clean spx_exchange.c spx_trader.c spx_common.h spx_exchange.h spx_trad
 .PHONY: testing
 testing: clean spx_exchange.c spx_common.h spx_exchange.h
 
-	$(CC) -o tests/unit-tests tests/unit-tests.c tests/libcmocka-static.a -lm -fprofile-arcs -ftest-coverage
+	$(CC) -o tests/unit-tests tests/unit-tests.c tests/libcmocka-static.a -fprofile-arcs -ftest-coverage $(CFLAGS) $(LDFLAGS)
 
 
 .PHONY: clean

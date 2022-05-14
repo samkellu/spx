@@ -1,0 +1,1038 @@
+        -:    0:Source:spx_exchange.c
+        -:    0:Graph:./unit-tests.gcno
+        -:    0:Data:./unit-tests.gcda
+        -:    0:Runs:2
+        -:    1:
+        -:    2:/**
+        -:    3: * comp2017 - assignment 3
+        -:    4: * Sam Kelly
+        -:    5: * SKEL4720
+        -:    6: */
+        -:    7:
+        -:    8:#include "spx_exchange.h"
+        -:    9:
+        -:   10:int read_trader = -1;
+        -:   11:int init_flag = 0;
+        -:   12:int disconnect_trader = -1;
+        -:   13:int exit_flag = 0;
+        -:   14:long total_fees = 0;
+        -:   15:
+        -:   16:// Signal handler for SIGUSR1 (read pipe), SIGUSR2 (invalid binary) and SIGCHLD (trader disconnected)
+    #####:   17:void read_sig(int signo, siginfo_t *si, void *uc) {
+    #####:   18:	if (signo == SIGUSR1) {
+    #####:   19:		read_trader = si->si_pid;
+    #####:   20:	} else if (signo == SIGCHLD) {
+    #####:   21:		disconnect_trader = si->si_pid;
+    #####:   22:	} else if (signo == SIGUSR2) {
+    #####:   23:		exit_flag = 1;
+        -:   24:	}
+    #####:   25:}
+        -:   26:
+        -:   27:// Writes a message to a given pipe file descriptor
+    #####:   28:int write_pipe(int fd, char* message) {
+        -:   29:	// Writes message only if it is of valid size, and the file descriptor is valid
+    #####:   30:	if (strlen(message) < MAX_INPUT) {
+    #####:   31:		if (fd == -1) {
+    #####:   32:			return -1;
+        -:   33:		}
+    #####:   34:		write(fd, message, strlen(message));
+    #####:   35:		return 1;
+        -:   36:	}
+    #####:   37:	return -1;
+        -:   38:}
+        -:   39:
+        -:   40:// Creates an order as specified by a trader connected to the exchange
+    #####:   41:struct order** create_order(int type, char** products, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, \
+        -:   42:															struct order**, int), struct order** orders, struct trader** traders, int time) {
+        -:   43: // Initialises a new order
+    #####:   44:	struct order* new_order = malloc(sizeof(struct order));
+    #####:   45:	new_order->type = type;
+    #####:   46:	new_order->order_id = order_id;
+    #####:   47:	new_order->qty = qty;
+    #####:   48:	new_order->price = price;
+    #####:   49:	new_order->trader = trader;
+    #####:   50:	new_order->product = malloc(PRODUCT_LENGTH);
+    #####:   51:	new_order->time = time;
+        -:   52:
+    #####:   53:	if (product != NULL) {
+    #####:   54:		memcpy(new_order->product, product, PRODUCT_LENGTH);
+        -:   55:	}
+        -:   56:
+        -:   57:	// Alters contents of AMEND and CANCEL orders, as originally they require data from another order to function correctly
+    #####:   58:	if (type == AMEND || type == CANCEL) {
+        -:   59:		// Locates the order referenced by the order and copies its information into the new order
+    #####:   60:		int cursor = 0;
+    #####:   61:		while (orders[cursor] != NULL) {
+        -:   62:
+    #####:   63:			if (orders[cursor]->trader == new_order->trader && orders[cursor]->order_id == new_order->order_id) {
+    #####:   64:				new_order->type = orders[cursor]->type;
+    #####:   65:				memcpy(new_order->product, orders[cursor]->product, PRODUCT_LENGTH);
+    #####:   66:				break;
+        -:   67:			}
+    #####:   68:			cursor++;
+        -:   69:		}
+        -:   70:	}
+        -:   71:	// Retrieves the index of the referenced product in the trade position array
+    #####:   72:	int pos_index = 0;
+    #####:   73:	for (int index = 1; index <= strtol(products[0], NULL, 10); index++) {
+    #####:   74:		if (strcmp(products[index], new_order->product) == 0) {
+    #####:   75:			pos_index = index - 1;
+    #####:   76:			break;
+        -:   77:		}
+        -:   78:	}
+        -:   79:
+        -:   80:	// Converts string type values into integers for processing
+        -:   81:	char* type_str;
+    #####:   82:	switch (new_order->type) {
+    #####:   83:		case 0:
+    #####:   84:			type_str = "BUY";
+    #####:   85:			break;
+    #####:   86:		case 1:
+    #####:   87:			type_str = "SELL";
+    #####:   88:			break;
+        -:   89:	}
+        -:   90:
+        -:   91:	// Preparing messages to send to traders regarding the new order
+    #####:   92:	char* market_msg = malloc(MAX_INPUT);
+    #####:   93:	sprintf(market_msg, "MARKET %s %s %d %d;", type_str, new_order->product, new_order->qty, new_order->price);
+        -:   94:	// Writes messages to all traders other than the initiating trader
+    #####:   95:	int index = 0;
+    #####:   96:	while (traders[index] != NULL) {
+    #####:   97:		if (traders[index] != new_order->trader && traders[index]->active) {
+    #####:   98:			write_pipe(traders[index]->exchange_fd, market_msg);
+    #####:   99:			kill(traders[index]->pid, SIGUSR1);
+        -:  100:		}
+    #####:  101:		index++;
+        -:  102:	}
+    #####:  103:	free(market_msg);
+        -:  104:
+        -:  105:	// Completes the order with its provided function
+    #####:  106:	orders = operation(new_order, orders, pos_index);
+        -:  107:
+    #####:  108:	return orders;
+        -:  109:}
+        -:  110:
+        -:  111:// Deletes an order from the exchange
+    #####:  112:struct order** delete_order(struct order* del_order, struct order** orders) {
+        -:  113:
+        -:  114:	// Gets the index of the order in the array
+    #####:  115:	int index = 0;
+    #####:  116:	while (orders[index] != del_order) {
+    #####:  117:		index++;
+        -:  118:	}
+        -:  119:	// Reshuffles the array to delete the desired order
+    #####:  120:	while (orders[index] != NULL) {
+    #####:  121:		orders[index] = orders[index + 1];
+    #####:  122:		index++;
+        -:  123:	}
+        -:  124:	// Reallocates memory for the order array
+    #####:  125:	orders = realloc(orders, sizeof(struct order*) * index);
+    #####:  126:	free(del_order->product);
+    #####:  127:	free(del_order);
+    #####:  128:	return orders;
+        -:  129:}
+        -:  130:
+        -:  131:// Cancels an order and removes it from the exchange
+    #####:  132:struct order** cancel_order(struct order* new_order, struct order** orders, int pos_index) {
+        -:  133:
+        -:  134:	// Locates the order to be deleted
+    #####:  135:	int index = 0;
+    #####:  136:	while (orders[index] != NULL) {
+    #####:  137:		if (orders[index]->trader == new_order->trader && orders[index]->order_id == new_order->order_id) {
+    #####:  138:			break;
+        -:  139:		}
+    #####:  140:		index++;
+        -:  141:	}
+        -:  142:
+        -:  143:	// Deletes the order from the exchange
+    #####:  144:	orders = delete_order(orders[index], orders);
+    #####:  145:	free(new_order->product);
+    #####:  146:	free(new_order);
+    #####:  147:	return orders;
+        -:  148:}
+        -:  149:
+        -:  150:// Processes a buy order on the exchange, and attempts to match the order with others using price-time priority
+    #####:  151:struct order** buy_order(struct order* new_order, struct order** orders, int pos_index) {
+        -:  152:
+    #####:  153:	while (1) {
+        -:  154:		// Initialises a trader struct to store the current cheapest valid sell order
+    #####:  155:		struct order* cheapest_sell = NULL;
+    #####:  156:		int current_order = 0;
+        -:  157:
+        -:  158:		// Searches for the cheapest valid SELL order for the desired product
+    #####:  159:		while (orders[current_order] != NULL) {
+        -:  160:			// Booleans to check if the current order is compatible with the new order
+    #####:  161:			int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
+    #####:  162:			int price_valid = (orders[current_order]->price <= new_order->price);
+        -:  163:
+    #####:  164:			if (product_valid && price_valid && orders[current_order]->type == SELL) {
+        -:  165:				// Price time priority sorting
+    #####:  166:				if (cheapest_sell == NULL || (orders[current_order]->price == cheapest_sell->price && orders[current_order]->time < cheapest_sell->time) || orders[current_order]->price < cheapest_sell->price) {
+    #####:  167:					cheapest_sell = orders[current_order];
+        -:  168:				}
+        -:  169:			}
+    #####:  170:			current_order++;
+        -:  171:		}
+    #####:  172:		current_order--;
+        -:  173:
+        -:  174:		// Breaks in the case where there is no valid SELL order available
+    #####:  175:		if (cheapest_sell == NULL) {
+    #####:  176:			break;
+        -:  177:		}
+        -:  178:
+        -:  179:		// Calculates the qty associated with the trade
+    #####:  180:		int qty = 0;
+    #####:  181:		if (cheapest_sell->qty <= new_order->qty) {
+    #####:  182:			qty = cheapest_sell->qty;
+    #####:  183:			new_order->qty -= cheapest_sell->qty;
+    #####:  184:			cheapest_sell->qty = 0;
+        -:  185:
+        -:  186:		} else {
+        -:  187:
+    #####:  188:			cheapest_sell->qty -= new_order->qty;
+    #####:  189:			qty = new_order->qty;
+    #####:  190:			new_order->qty = 0;
+        -:  191:		}
+        -:  192:
+        -:  193:		// Calculates the cost and fee associated with the trade
+    #####:  194:		long cost = (long)qty * cheapest_sell->price;
+    #####:  195:		long fee = (long)roundl((long)cost * FEE_AMOUNT);
+    #####:  196:		total_fees += fee;
+        -:  197:
+        -:  198:		// Prints the order matched message
+    #####:  199:		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%ld, fee: $%ld.\n", LOG_PREFIX, cheapest_sell->order_id,\
+    #####:  200:		cheapest_sell->trader->id, new_order->order_id, new_order->trader->id, cost, fee);
+        -:  201:
+        -:  202:		char msg[MAX_INPUT];
+        -:  203:		char path[PATH_LENGTH];
+        -:  204:		int fd;
+        -:  205:
+    #####:  206:		if (cheapest_sell->trader->active) {
+        -:  207:			// Inform trader that their order has been filled
+    #####:  208:			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, cheapest_sell->trader->id);
+    #####:  209:			fd = open(path, O_WRONLY);
+    #####:  210:			snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->order_id, qty);
+    #####:  211:			write_pipe(fd, msg);
+    #####:  212:			kill(cheapest_sell->trader->pid, SIGUSR1);
+    #####:  213:			close(fd);
+        -:  214:		}
+        -:  215:		// Update position values
+    #####:  216:		cheapest_sell->trader->position_qty[pos_index] -= qty;
+    #####:  217:		cheapest_sell->trader->position_cost[pos_index] += cost;
+        -:  218:
+    #####:  219:		if (new_order->trader->active) {
+        -:  220:			// Inform initiating trader that their order has been filled
+    #####:  221:			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
+    #####:  222:			fd = open(path, O_WRONLY);
+    #####:  223:			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
+    #####:  224:			write_pipe(fd, msg);
+    #####:  225:			kill(new_order->trader->pid, SIGUSR1);
+    #####:  226:			close(fd);
+        -:  227:		}
+        -:  228:		// Update position values
+    #####:  229:		new_order->trader->position_qty[pos_index] += qty;
+    #####:  230:		new_order->trader->position_cost[pos_index] -= (cost + fee);
+        -:  231:
+        -:  232:		// Deletes the matched order if it is now empty
+    #####:  233:		if (cheapest_sell->qty == 0) {
+    #####:  234:			orders = delete_order(cheapest_sell, orders);
+        -:  235:		} else {
+    #####:  236:			break;
+        -:  237:		}
+        -:  238:	}
+        -:  239:
+        -:  240:	// Adds the new order to the order array if it is not empty
+    #####:  241:	if (new_order->qty != 0) {
+    #####:  242:		int cursor = 0;
+    #####:  243:		while (orders[cursor] != NULL) {
+    #####:  244:			cursor++;
+        -:  245:		}
+        -:  246:
+        -:  247:		// Reallocates memory for the order array
+    #####:  248:		orders = realloc(orders, sizeof(struct order) * (cursor + 2));
+    #####:  249:		orders[cursor] = new_order;
+    #####:  250:		orders[cursor + 1] = NULL;
+    #####:  251:		return orders;
+        -:  252:	}
+    #####:  253:	free(new_order->product);
+    #####:  254:	free(new_order);
+    #####:  255:	return orders;
+        -:  256:}
+        -:  257:
+        -:  258:// Processes a sell order on the exchange, and attempts to match the order with others using price-time priority
+    #####:  259:struct order** sell_order(struct order* new_order, struct order** orders, int pos_index) {
+        -:  260:
+    #####:  261:	while (1) {
+        -:  262:		// Initialises a trader struct to store the most expensive valid buy order
+    #####:  263:		struct order* highest_buy = NULL;
+    #####:  264:		int current_order = 0;
+        -:  265:
+        -:  266:		// Locates the most expensive valid buy order on the exchange
+    #####:  267:		while (orders[current_order] != NULL) {
+        -:  268:			// Booleans to check if the current order is compatible with the new order
+    #####:  269:			int product_valid = (strcmp(orders[current_order]->product, new_order->product) == 0);
+    #####:  270:			int price_valid = (orders[current_order]->price >= new_order->price);
+        -:  271:
+    #####:  272:			if (product_valid && price_valid && orders[current_order]->type == BUY) {
+        -:  273:				// Price time priority sorting
+    #####:  274:				if (highest_buy == NULL || (orders[current_order]->price == highest_buy->price && orders[current_order]->time < highest_buy->time) || orders[current_order]->price > highest_buy->price) {
+    #####:  275:					highest_buy = orders[current_order];
+        -:  276:				}
+        -:  277:			}
+    #####:  278:			current_order++;
+        -:  279:		}
+        -:  280:
+        -:  281:		// Breaks if there are no valid buy orders available
+    #####:  282:		if (highest_buy == NULL) {
+    #####:  283:			break;
+        -:  284:		}
+        -:  285:		// Calculates the quantity associated with the trade
+    #####:  286:		int qty = 0;
+    #####:  287:		if (highest_buy->qty <= new_order->qty) {
+    #####:  288:			qty = highest_buy->qty;
+    #####:  289:			new_order->qty -= highest_buy->qty;
+    #####:  290:			highest_buy->qty = 0;
+        -:  291:
+        -:  292:		} else {
+    #####:  293:			highest_buy->qty -= new_order->qty;
+    #####:  294:			qty = new_order->qty;
+    #####:  295:			new_order->qty = 0;
+        -:  296:
+        -:  297:		}
+        -:  298:
+        -:  299:		// Calculates the cost and fee associated with the trade
+    #####:  300:		long cost = (long)qty * highest_buy->price;
+    #####:  301:		long fee = (long)roundl((long)cost * FEE_AMOUNT);
+    #####:  302:		total_fees += fee;
+        -:  303:
+        -:  304:		// Prints the matched order message
+    #####:  305:		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%ld, fee: $%ld.\n", LOG_PREFIX, highest_buy->order_id,\
+    #####:  306:		highest_buy->trader->id, new_order->order_id, new_order->trader->id, cost, fee);
+        -:  307:
+        -:  308:		char msg[MAX_INPUT];
+        -:  309:		char path[PATH_LENGTH];
+        -:  310:		int fd;
+        -:  311:
+    #####:  312:		if (highest_buy->trader->active) {
+        -:  313:			// Inform trader that their order has been filled
+    #####:  314:			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, highest_buy->trader->id);
+    #####:  315:			fd = open(path, O_WRONLY);
+    #####:  316:			snprintf(msg, MAX_INPUT, "FILL %d %d;", highest_buy->order_id, qty);
+    #####:  317:			write_pipe(fd, msg);
+    #####:  318:			kill(highest_buy->trader->pid, SIGUSR1);
+    #####:  319:			close(fd);
+        -:  320:		}
+        -:  321:		// Update position values
+    #####:  322:		highest_buy->trader->position_qty[pos_index] += qty;
+    #####:  323:		highest_buy->trader->position_cost[pos_index] -= cost;
+        -:  324:
+    #####:  325:		if (new_order->trader->active) {
+        -:  326:			// inform initiating trader that their order has been fulfilled
+    #####:  327:			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, new_order->trader->id);
+    #####:  328:			fd = open(path, O_WRONLY);
+    #####:  329:			snprintf(msg, MAX_INPUT, "FILL %d %d;", new_order->order_id, qty);
+    #####:  330:			write_pipe(fd, msg);
+    #####:  331:			kill(new_order->trader->pid, SIGUSR1);
+    #####:  332:			close(fd);
+        -:  333:		}
+        -:  334:
+        -:  335:		// Update position values
+    #####:  336:		new_order->trader->position_qty[pos_index] -= qty;
+    #####:  337:		new_order->trader->position_cost[pos_index] += cost - fee;
+        -:  338:		// Deletes the order if it is now empty
+    #####:  339:		if (highest_buy->qty == 0) {
+    #####:  340:			orders = delete_order(highest_buy, orders);
+        -:  341:		} else {
+    #####:  342:			break;
+        -:  343:		}
+        -:  344:	}
+        -:  345:
+        -:  346:	// Adds the new order to the order array if it is not empty
+    #####:  347:	if (new_order->qty != 0) {
+    #####:  348:		int cursor = 0;
+    #####:  349:		while (orders[cursor] != NULL) {
+    #####:  350:			cursor++;
+        -:  351:		}
+        -:  352:		// Reallocating memory for the orders array
+    #####:  353:		orders = realloc(orders, sizeof(struct order) * (cursor + 2));
+    #####:  354:		orders[cursor] = new_order;
+    #####:  355:		orders[cursor + 1] = NULL;
+    #####:  356:		return orders;
+        -:  357:	}
+    #####:  358:	free(new_order->product);
+    #####:  359:	free(new_order);
+    #####:  360:	return orders;
+        -:  361:}
+        -:  362:
+        -:  363:// Changes the quantity and price values of an order already in the exchange
+    #####:  364:struct order** amend_order(struct order* new_order, struct order** orders, int pos_index) {
+        -:  365:
+        -:  366:	// Locates the required order
+    #####:  367:	int cursor = 0;
+    #####:  368:	while (orders[cursor] != NULL) {
+    #####:  369:		if (orders[cursor]->order_id == new_order->order_id && orders[cursor]->trader == new_order->trader) {
+    #####:  370:			break;
+        -:  371:		}
+    #####:  372:		cursor++;
+        -:  373:	}
+        -:  374:
+        -:  375:	// Creates a new order with the desired specifications
+    #####:  376:	struct order* amended_order = malloc(sizeof(struct order));
+    #####:  377:	amended_order->type = orders[cursor]->type;
+    #####:  378:	amended_order->order_id = orders[cursor]->order_id;
+    #####:  379:	amended_order->qty = new_order->qty;
+    #####:  380:	amended_order->price = new_order->price;
+    #####:  381:	amended_order->trader = orders[cursor]->trader;
+    #####:  382:	amended_order->product = malloc(PRODUCT_LENGTH);
+    #####:  383:	amended_order->time = new_order->time;
+    #####:  384:	memcpy(amended_order->product, orders[cursor]->product, PRODUCT_LENGTH);
+        -:  385:
+        -:  386:	// Deletes the old order
+    #####:  387:	orders = delete_order(orders[cursor], orders);
+        -:  388:
+    #####:  389:	free(new_order->product);
+    #####:  390:	free(new_order);
+        -:  391:	// Reprocesses the new amended order, and attempts to match with other orders
+    #####:  392:	if (amended_order->type == SELL) {
+    #####:  393:		return sell_order(amended_order, orders, pos_index);
+        -:  394:	}
+    #####:  395:	return buy_order(amended_order, orders, pos_index);
+        -:  396:}
+        -:  397:
+        -:  398:// Reads the products file and returns an array of the product's names
+        8:  399:char** read_products_file(char* fp) {
+        -:  400:
+        -:  401:	FILE* file;
+        8:  402:	if ((file = fopen(fp, "r")) == NULL) {
+        2:  403:		return NULL;
+        -:  404:	}
+        -:  405:	// Sets the first element of the array to be the number of products being traded
+        6:  406:	char* length_str = malloc(PRODUCT_LENGTH);
+        6:  407:	fgets(length_str, PRODUCT_LENGTH, file);
+        6:  408:	int file_length = strtol(length_str, NULL, 10) + 1;
+        6:  409:	char** products = (char**) malloc(sizeof(char**) * file_length);
+        6:  410:	products[0] = strtok(length_str, "\n");
+        -:  411:
+        -:  412:	// Reads in as many lines as specified by the file's 1st line
+        6:  413:	int index = 1;
+       44:  414:	while ((file_length - index) > 0) {
+        -:  415:
+       40:  416:		char* product = (char*) malloc(sizeof(char) * PRODUCT_LENGTH);
+       40:  417:		product = fgets(product, PRODUCT_LENGTH, file);
+        -:  418:
+       40:  419:		if (product == NULL) {
+        2:  420:			return NULL;
+        -:  421:		}
+        -:  422:		// Checks for null or empty lines
+       38:  423:		if (product[0] == '\n' || product[0] == '\0' || product[0] == '\r') {
+        2:  424:			free(product);
+        -:  425:		} else {
+       36:  426:			products[index++] = strtok(product, "\n");
+        -:  427:		}
+        -:  428:	}
+        4:  429:	fclose(file);
+        -:  430:
+        -:  431:	// Prints all products being traded
+        4:  432:	printf("%s Trading %d products: ", LOG_PREFIX, file_length - 1);
+        -:  433:
+       28:  434:	for (int index = 1; index < file_length; index++) {
+       24:  435:		printf("%s", products[index]);
+       24:  436:		if (index != file_length - 1) {
+       20:  437:			printf(" ");
+        -:  438:		} else {
+        4:  439:			printf("\n");
+        -:  440:		}
+        -:  441:	}
+        4:  442:	return products;
+        -:  443:}
+        -:  444:
+        -:  445:// Reads data from the desired fifo, returns an array of input arguments
+    #####:  446:char** take_input(int fd) {
+        -:  447:
+    #####:  448:	char** args = malloc(sizeof(char**));
+    #####:  449:	args[0] = malloc(PRODUCT_LENGTH);
+        -:  450:
+    #####:  451:	int char_counter = 0;
+    #####:  452:	int arg_counter = 0;
+    #####:  453:	int total_counter = 0;
+        -:  454:
+        -:  455:	// Reads data one character at a time until the pipe is empty, or the input is of a sufficient size
+    #####:  456:	while (total_counter < MAX_INPUT && char_counter < PRODUCT_LENGTH - 1) {
+        -:  457:
+    #####:  458:		int result = read(fd, &args[arg_counter][char_counter], 1);
+        -:  459:
+        -:  460:		// Returns if read() returns an error
+    #####:  461:		if (result == -1) {
+    #####:  462:			for (int cursor = 0; cursor <= arg_counter; cursor++) {
+    #####:  463:				free(args[cursor]);
+        -:  464:			}
+    #####:  465:			free(args);
+    #####:  466:			return (char**)NULL;
+        -:  467:		}
+    #####:  468:		total_counter++;
+        -:  469:
+        -:  470:		// Checks validity of arguments, then adds them to an array of strings
+    #####:  471:		if (args[arg_counter][char_counter] == ' '  || args[arg_counter][char_counter] == ';') {
+        -:  472:
+    #####:  473:			args = realloc(args, sizeof(char**) * (arg_counter + 2));
+    #####:  474:			if (args[arg_counter][char_counter] == ';') {
+    #####:  475:				args[arg_counter][char_counter] = '\0';
+    #####:  476:				args[arg_counter + 1] = NULL;
+    #####:  477:				return args;
+        -:  478:			}
+    #####:  479:			args[arg_counter][char_counter] = '\0';
+    #####:  480:			arg_counter++;
+        -:  481:
+    #####:  482:			args[arg_counter] = malloc(PRODUCT_LENGTH);
+    #####:  483:			char_counter = 0;
+    #####:  484:			continue;
+        -:  485:		}
+    #####:  486:		char_counter++;
+        -:  487:	}
+        -:  488:	// Cleans up memory in the event that the input was too large
+    #####:  489:	for (int cursor = 0; cursor <= arg_counter; cursor++) {
+    #####:  490:		free(args[cursor]);
+        -:  491:	}
+    #####:  492:	free(args);
+    #####:  493:	return (char**)NULL;
+        -:  494:}
+        -:  495:
+        -:  496:// Starts a trader on the exchange
+    #####:  497:struct trader* initialise_trader(char* path, int index, int num_products) {
+        -:  498:
+        -:  499:	// Initialises a trader struct for the new trader
+    #####:  500:	struct trader* new_trader = malloc(sizeof(struct trader));
+    #####:  501:	new_trader->id = index;
+    #####:  502:	new_trader->position_qty = calloc(sizeof(int), sizeof(int) * num_products);
+    #####:  503:	new_trader->position_cost = calloc(sizeof(int), sizeof(int) * num_products);
+    #####:  504:	new_trader->active = 1;
+    #####:  505:	new_trader->current_order_id = 0;
+        -:  506:
+    #####:  507:	printf("%s Starting trader %d (%s)\n", LOG_PREFIX, index, path);
+    #####:  508:	fflush(stdout);
+        -:  509:
+        -:  510:	// Forks to create a new child process
+    #####:  511:	new_trader->pid = fork();
+    #####:  512:	if (new_trader->pid == -1) {
+        -:  513:
+    #####:  514:		fprintf(stderr, "Fork failed\n");
+    #####:  515:		free(new_trader->position_qty);
+    #####:  516:		free(new_trader->position_cost);
+    #####:  517:		free(new_trader);
+    #####:  518:		return NULL;
+        -:  519:	}
+        -:  520:
+        -:  521:	// If the process is the parent, returns the new trader struct
+    #####:  522:	if (new_trader->pid > 0) {
+        -:  523:		// Waits to catchj failure signal
+        -:  524:		struct timespec tim, tim2;
+    #####:  525:		tim.tv_sec = 0;
+    #####:  526:		tim.tv_nsec = 100000;
+    #####:  527:		nanosleep(&tim , &tim2);
+        -:  528:
+    #####:  529:		return new_trader;
+        -:  530:
+    #####:  531:	} else if (new_trader->pid == 0){
+        -:  532:		// If the process is the child, formats command line arguments and execs to start the new process
+        -:  533:		char trader_id[MAX_TRADERS_BYTES];
+    #####:  534:		sprintf(trader_id, "%d", index);
+    #####:  535:		if (execl(path, path, trader_id, NULL) == -1) {
+        -:  536:
+    #####:  537:			printf("%s Error: Given trader binary is invalid\n", LOG_PREFIX);
+    #####:  538:			kill(getppid(), SIGUSR2);
+    #####:  539:			free(new_trader->position_qty);
+    #####:  540:			free(new_trader->position_cost);
+    #####:  541:			free(new_trader);
+    #####:  542:			exit(0);
+        -:  543:		}
+        -:  544:	}
+    #####:  545:	return NULL;
+        -:  546:}
+        -:  547:
+        -:  548:// Creates a named pipe at the desired location
+    #####:  549:int create_fifo(char* path) {
+        -:  550:
+        -:  551:	// Removes named pipe if it already exists
+    #####:  552:	unlink(path);
+        -:  553:	// Creates the new fifo
+    #####:  554:	if (mkfifo(path, FIFO_PERMS) == -1) {
+    #####:  555:		printf("%s Error: Could not create FIFO\n", LOG_PREFIX);
+    #####:  556:		return -1;
+        -:  557:	}
+    #####:  558:	printf("%s Created FIFO %s\n", LOG_PREFIX, path);
+    #####:  559:	return 1;
+        -:  560:}
+        -:  561:
+        -:  562:// Helper function to generate level data for the orderbook
+    #####:  563:struct level* orderbook_helper(struct order* current_order, int* num_levels, int* num_type, struct level* levels) {
+        -:  564:
+    #####:  565:	int valid = 1;
+        -:  566:	// Checks if the given order fits in a given level and adds its data to that level if it does
+    #####:  567:	for (int level_cursor = 0; level_cursor < *num_levels; level_cursor++) {
+    #####:  568:		if (current_order->price == levels[level_cursor].price && current_order->type == levels[level_cursor].type) {
+    #####:  569:			valid = 0;
+    #####:  570:			levels[level_cursor].num++;
+    #####:  571:			levels[level_cursor].qty += current_order->qty;
+    #####:  572:			break;
+        -:  573:		}
+        -:  574:	}
+        -:  575:
+        -:  576:	// Creates a new level for the order
+    #####:  577:	if (valid) {
+    #####:  578:		*num_levels = *num_levels + 1;
+    #####:  579:		*num_type = *num_type + 1;
+    #####:  580:		levels = realloc(levels, sizeof(struct level) * *num_levels);
+    #####:  581:		struct level new_level = {current_order->price, 1, current_order->qty, current_order->type};
+    #####:  582:		levels[*num_levels - 1] = new_level;
+        -:  583:	}
+    #####:  584:	return levels;
+        -:  585:}
+        -:  586:
+        -:  587:// Creates the orderbook to display the current state of the exchange
+    #####:  588:void generate_orderbook(int num_products, char** products, struct order** orders, struct trader** traders) {
+        -:  589:
+    #####:  590:	printf("%s	--ORDERBOOK--\n", LOG_PREFIX);
+        -:  591:
+        -:  592:	// Generates the product message for each product
+    #####:  593:	for (int product = 1; product <= num_products; product++) {
+        -:  594:
+    #####:  595:		int num_levels = 0;
+    #####:  596:		int num_sell_levels = 0;
+    #####:  597:		int num_buy_levels = 0;
+    #####:  598:		int cursor = 0;
+    #####:  599:		struct level* levels = malloc(0);
+        -:  600:
+        -:  601:		// Retrieves current level information for each product
+    #####:  602:		while (orders[cursor] != NULL) {
+    #####:  603:			if (strcmp(orders[cursor]->product, products[product]) == 0) {
+    #####:  604:				if (orders[cursor]->type == SELL) {
+    #####:  605:					levels = orderbook_helper(orders[cursor], &num_levels, &num_sell_levels, levels);
+        -:  606:				}
+    #####:  607:				if (orders[cursor]->type == BUY) {
+    #####:  608:					levels = orderbook_helper(orders[cursor], &num_levels, &num_buy_levels, levels);
+        -:  609:				}
+        -:  610:			}
+    #####:  611:			cursor++;
+        -:  612:		}
+        -:  613:
+        -:  614:		// Prints the level information for the current product
+    #####:  615:		printf("%s\tProduct: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
+        -:  616:
+        -:  617:		// Prints all levels for the current product, from the most expensive to the least
+    #####:  618:		while (num_levels > 0) {
+        -:  619:
+    #####:  620:			int max = 0;
+        -:  621:			int max_index;
+        -:  622:
+        -:  623:			// Finds the current most expensive level
+    #####:  624:			for (int level = 0; level < num_levels; level++) {
+    #####:  625:				if (levels[level].price > max) {
+    #####:  626:					max_index = level;
+    #####:  627:					max = levels[level].price;
+        -:  628:				}
+        -:  629:			}
+        -:  630:
+        -:  631:			// Creates a string representing the level's type
+        -:  632:			char* type_str;
+    #####:  633:			if (levels[max_index].type) {
+    #####:  634:				type_str = "SELL";
+        -:  635:			} else {
+    #####:  636:				type_str = "BUY";
+        -:  637:			}
+        -:  638:
+        -:  639:			// Spelling depending on number of orders in the level
+        -:  640:			char* order_str;
+    #####:  641:			if (levels[max_index].num > 1) {
+    #####:  642:				order_str = "orders";
+        -:  643:			} else {
+    #####:  644:				order_str = "order";
+        -:  645:			}
+        -:  646:
+        -:  647:			// Prints the current level
+    #####:  648:			printf("%s\t\t%s %d @ $%d (%d %s)\n", LOG_PREFIX, type_str, levels[max_index].qty, levels[max_index].price, \
+    #####:  649:						levels[max_index].num, order_str);
+        -:  650:
+        -:  651:			// Deletes the level from the array of levels for the current product and moves on to the next
+    #####:  652:			num_levels--;
+    #####:  653:			for (int level = max_index; level < num_levels; level++) {
+    #####:  654:				levels[level] = levels[level + 1];
+        -:  655:			}
+        -:  656:
+    #####:  657:			levels = realloc(levels, sizeof(struct level) * num_levels);
+        -:  658:		}
+    #####:  659:		free(levels);
+        -:  660:	}
+        -:  661:
+        -:  662:	// Displays the current position of all traders
+    #####:  663:	printf("%s	--POSITIONS--\n", LOG_PREFIX);
+        -:  664:
+    #####:  665:	int cursor = 0;
+    #####:  666:	while (traders[cursor] != NULL) {
+    #####:  667:		printf("%s	Trader %d: ", LOG_PREFIX, traders[cursor]->id);
+        -:  668:
+        -:  669:		// Prints position data for each product for the current trader
+    #####:  670:		for (int product_num = 0; product_num < num_products; product_num++) {
+    #####:  671:			printf("%s %ld ($%ld)", products[product_num + 1], traders[cursor]->position_qty[product_num], traders[cursor]->position_cost[product_num]);
+    #####:  672:			if (product_num != num_products - 1) {
+    #####:  673:				printf(", ");
+        -:  674:			} else {
+    #####:  675:				printf("\n");
+        -:  676:			}
+        -:  677:		}
+    #####:  678:		cursor++;
+        -:  679:	}
+    #####:  680:}
+        -:  681:
+        -:  682:// Disconnects a given trader from the exchange
+    #####:  683:int disconnect(struct trader** traders, struct order** orders, char** products, int argc) {
+        -:  684:
+    #####:  685:	int cursor = 0;
+    #####:  686:	int count_active = 0;
+        -:  687:
+        -:  688:	// Locates the trader that has disconnected
+    #####:  689:	while (traders[cursor] != NULL) {
+    #####:  690:		if (disconnect_trader == traders[cursor]->pid) {
+        -:  691:			// Displays d/c message and set's the trader to be inactive
+    #####:  692:			printf("%s Trader %d disconnected\n", LOG_PREFIX, traders[cursor]->id);
+    #####:  693:			traders[cursor]->active = 0;
+        -:  694:		}
+        -:  695:		// Counts the number of active traders on the exchange
+    #####:  696:		if (traders[cursor]->active) {
+    #####:  697:			count_active++;
+        -:  698:		}
+    #####:  699:		cursor++;
+        -:  700:	}
+        -:  701:	// Resetting global flags
+    #####:  702:	disconnect_trader = -1;
+        -:  703:
+        -:  704:	// Ends the exchange if there are no traders active
+    #####:  705:	if (count_active == 0) {
+    #####:  706:		printf("%s Trading completed\n", LOG_PREFIX);
+    #####:  707:		printf("%s Exchange fees collected: $%ld\n", LOG_PREFIX, total_fees);
+        -:  708:
+        -:  709:		// Deallocates all memory allocated to orders
+    #####:  710:		cursor = 0;
+    #####:  711:		while (orders[cursor] != NULL) {
+    #####:  712:			free(orders[cursor]->product);
+    #####:  713:			free(orders[cursor++]);
+        -:  714:		}
+    #####:  715:		free(orders);
+        -:  716:
+        -:  717:		// unlinks all named pipes
+    #####:  718:		cursor = 0;
+    #####:  719:		while (cursor < argc - 2) {
+        -:  720:			char path[PATH_LENGTH];
+    #####:  721:			snprintf(path, PATH_LENGTH, EXCHANGE_PATH, cursor);
+    #####:  722:			unlink(path);
+    #####:  723:			snprintf(path, PATH_LENGTH, TRADER_PATH, cursor);
+    #####:  724:			unlink(path);
+    #####:  725:			cursor++;
+        -:  726:		}
+        -:  727:
+        -:  728:		// Deallocates all memory allocated to traders
+    #####:  729:		cursor = 0;
+    #####:  730:		while (traders[cursor] != NULL) {
+    #####:  731:			free(traders[cursor]->position_qty);
+    #####:  732:			free(traders[cursor]->position_cost);
+    #####:  733:			free(traders[cursor++]);
+        -:  734:		}
+    #####:  735:		free(traders);
+        -:  736:
+        -:  737:		// Deallocates all memory allocated to products
+    #####:  738:		int limit = strtol(products[0], NULL, 10);
+    #####:  739:		for (int index = 0; index <= limit; index++) {
+    #####:  740:			free(products[index]);
+        -:  741:		}
+    #####:  742:		free(products);
+        -:  743:
+    #####:  744:		return 1;
+        -:  745:	}
+    #####:  746:	return 0;
+        -:  747:}
+        -:  748:
+        -:  749:#ifndef TESTING
+        -:  750:// Runs the exchange
+        -:  751:int main(int argc, char **argv) {
+        -:  752:
+        -:  753:	// Validating command line arguments
+        -:  754:	if (argc < 3) {
+        -:  755:		printf("%s Invalid command line arguments\n", LOG_PREFIX);
+        -:  756:		return -1;
+        -:  757:	}
+        -:  758:
+        -:  759:	printf("%s Starting\n", LOG_PREFIX);
+        -:  760:
+        -:  761:	// Gets the products being traded
+        -:  762:	char** products = read_products_file(argv[1]);
+        -:  763:	if (products == NULL) {
+        -:  764:		printf("%s Error: Products file invalid", LOG_PREFIX);
+        -:  765:		return -1;
+        -:  766:	}
+        -:  767:
+        -:  768:	// Sets up signal handlers
+        -:  769:	struct sigaction sig_act;
+        -:  770:
+        -:  771:	sig_act.sa_handler = (void *)read_sig;
+        -:  772:	sigemptyset(&sig_act.sa_mask);
+        -:  773:	sig_act.sa_flags = SA_RESTART | SA_SIGINFO;
+        -:  774:
+        -:  775:	sigaction(SIGCHLD, &sig_act, NULL);
+        -:  776:	sigaction(SIGUSR1, &sig_act, NULL);
+        -:  777:	sigaction(SIGUSR2, &sig_act, NULL);
+        -:  778:
+        -:  779:	// Creates array to store all traders
+        -:  780:	struct trader** traders = malloc(sizeof(struct trader) * (argc - 1));
+        -:  781:	traders[argc - 2] = NULL;
+        -:  782:	// Initialises all traders
+        -:  783:	for (int trader = 2; trader < argc; trader++) {
+        -:  784:		// Creates named pipes for the exchange and traders
+        -:  785:		char exchange_path[PATH_LENGTH];
+        -:  786:		char trader_path[PATH_LENGTH];
+        -:  787:
+        -:  788:		snprintf(exchange_path, PATH_LENGTH, EXCHANGE_PATH, trader-2);
+        -:  789:		if (create_fifo(exchange_path) == -1) {
+        -:  790:			return -1;
+        -:  791:		}
+        -:  792:
+        -:  793:		snprintf(trader_path, PATH_LENGTH, TRADER_PATH, trader-2);
+        -:  794:		if (create_fifo(trader_path) == -1) {
+        -:  795:			return -1;
+        -:  796:		}
+        -:  797:
+        -:  798:		// Starts trader processes specified by command line arguments
+        -:  799:		traders[trader-2] = initialise_trader(argv[trader], trader-2, strtol(products[0], NULL, 10));
+        -:  800:
+        -:  801:		// Gracefully exists in the event that a trader could not be started
+        -:  802:		if (exit_flag || traders[trader - 2] == NULL) {
+        -:  803:
+        -:  804:			int num_products = strtol(products[0], NULL, 10);
+        -:  805:			for (int cursor = 0; cursor <= num_products; cursor++) {
+        -:  806:				free(products[cursor]);
+        -:  807:			}
+        -:  808:			free(products);
+        -:  809:
+        -:  810:			int cursor = 0;
+        -:  811:			while (traders[cursor] != NULL) {
+        -:  812:				free(traders[cursor]->position_qty);
+        -:  813:				free(traders[cursor]->position_cost);
+        -:  814:				free(traders[cursor++]);
+        -:  815:			}
+        -:  816:			free(traders);
+        -:  817:			return -1;
+        -:  818:		}
+        -:  819:
+        -:  820:		// Connects to each named pipe
+        -:  821:		traders[trader-2]->exchange_fd = open(exchange_path, O_WRONLY);
+        -:  822:		printf("%s Connected to %s\n", LOG_PREFIX, exchange_path);
+        -:  823:
+        -:  824:		traders[trader-2]->trader_fd = open(trader_path, O_RDONLY);
+        -:  825:		printf("%s Connected to %s\n", LOG_PREFIX, trader_path);
+        -:  826:	}
+        -:  827:	// Sending MARKET OPEN message to all exchange pipes
+        -:  828:	int cursor = 0;
+        -:  829:	while (traders[cursor] != NULL) {
+        -:  830:		write_pipe(traders[cursor++]->exchange_fd, "MARKET OPEN;");
+        -:  831:	}
+        -:  832:
+        -:  833:	cursor = 0;
+        -:  834:	while (traders[cursor] != NULL) {
+        -:  835:		kill(traders[cursor++]->pid, SIGUSR1);
+        -:  836:	}
+        -:  837:
+        -:  838:	// Creates a null terminated array of orders
+        -:  839:	struct order** orders = malloc(sizeof(struct order));
+        -:  840:	orders[0] = NULL;
+        -:  841:
+        -:  842:	int time = 0;
+        -:  843:
+        -:  844:	// Main event loop
+        -:  845:	while (1) {
+        -:  846:
+        -:  847:		// Waits for signals from traders before checking flags to minimise CPU usage
+        -:  848:		if (read_trader == -1 && disconnect_trader == -1) {
+        -:  849:			pause();
+        -:  850:		}
+        -:  851:
+        -:  852:		// Locates the trader that wrote to the exchange via PID
+        -:  853:		if (read_trader != -1) {
+        -:  854:			// Reset global flag
+        -:  855:
+        -:  856:			int cursor = 0;
+        -:  857:			char** arg_array;
+        -:  858:			while (traders[cursor] != NULL) {
+        -:  859:				if (traders[cursor]->pid == read_trader && traders[cursor]->active) {
+        -:  860:					// Get input arguments from the trader's named pipe
+        -:  861:					arg_array = take_input(traders[cursor]->trader_fd);
+        -:  862:					read_trader = -1;
+        -:  863:					break;
+        -:  864:				}
+        -:  865:				cursor++;
+        -:  866:			}
+        -:  867:
+        -:  868:			// Breaks if the returned arguments are invalid, or the trader doesnt exist
+        -:  869:			if (arg_array == NULL || traders[cursor] == NULL) {
+        -:  870:				continue;
+        -:  871:			}
+        -:  872:
+        -:  873:			// Formats and prints the returned arguments
+        -:  874:			printf("%s [T%d] Parsing command: <", LOG_PREFIX, traders[cursor]->id);
+        -:  875:
+        -:  876:			int arg_cursor = 0;
+        -:  877:			while (arg_array[arg_cursor] != NULL) {
+        -:  878:
+        -:  879:				printf("%s", arg_array[arg_cursor]);
+        -:  880:				if (arg_array[arg_cursor + 1] != NULL) {
+        -:  881:					printf(" ");
+        -:  882:				}
+        -:  883:				arg_cursor++;
+        -:  884:			}
+        -:  885:			printf(">\n");
+        -:  886:
+        -:  887:			// Checks if the number of given arguments is valid for the type of order
+        -:  888:			int valid_num_args = 0;
+        -:  889:			if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
+        -:  890:				valid_num_args = 5;
+        -:  891:			} else if (strcmp(arg_array[0], "AMEND") == 0) {
+        -:  892:				valid_num_args = 4;
+        -:  893:			} else if (strcmp(arg_array[0], "CANCEL") == 0) {
+        -:  894:				valid_num_args = 2;
+        -:  895:			}
+        -:  896:
+        -:  897:			// For the case where the order's format was invalid
+        -:  898:			if (arg_cursor != valid_num_args) {
+        -:  899:				arg_cursor = 0;
+        -:  900:
+        -:  901:				while (arg_array[arg_cursor] != NULL) {
+        -:  902:					free(arg_array[arg_cursor++]);
+        -:  903:				}
+        -:  904:
+        -:  905:				free(arg_array);
+        -:  906:				if (traders[cursor]->active) {
+        -:  907:					// Inform the trader that their order was invalid
+        -:  908:					char* msg = malloc(MAX_INPUT);
+        -:  909:					sprintf(msg, "INVALID;");
+        -:  910:					write_pipe(traders[cursor]->exchange_fd, msg);
+        -:  911:					kill(traders[cursor]->pid, SIGUSR1);
+        -:  912:					free(msg);
+        -:  913:				}
+        -:  914:				continue;
+        -:  915:			}
+        -:  916:
+        -:  917:			int qty;
+        -:  918:			int price;
+        -:  919:			int order_id;
+        -:  920:
+        -:  921:			int id_valid = 0;
+        -:  922:			int product_valid = 0;
+        -:  923:			int qty_valid = 0;
+        -:  924:			int price_valid = 0;
+        -:  925:
+        -:  926:			char* msg = malloc(MAX_INPUT);
+        -:  927:			order_id = strtol(arg_array[1], NULL, 10);
+        -:  928:
+        -:  929:			// Processes args depending on the number of arguments given
+        -:  930:			if (valid_num_args == 5) { // BUY/SELL case: <BUY/SELL> <order_id> <product> <qty> <price>
+        -:  931:
+        -:  932:				qty = strtol(arg_array[3], NULL, 10);
+        -:  933:				price = strtol(arg_array[4], NULL, 10);
+        -:  934:				sprintf(msg, "ACCEPTED %s;", arg_array[1]);
+        -:  935:
+        -:  936:				// Checks validity of the given product and id
+        -:  937:				for (int product = 1; product <= strtol(products[0], NULL, 10); product++) {
+        -:  938:					if (strcmp(products[product], arg_array[2]) == 0) {
+        -:  939:						product_valid = 1;
+        -:  940:						id_valid = (order_id == traders[cursor]->current_order_id);
+        -:  941:						break;
+        -:  942:					}
+        -:  943:				}
+        -:  944:			} else if (valid_num_args == 4 || valid_num_args == 2) { // AMEND/CANCEL case
+        -:  945:
+        -:  946:				product_valid = 1;
+        -:  947:
+        -:  948:				int index = 0;
+        -:  949:				// Checks the validity of the given id
+        -:  950:				while (orders[index] != NULL) {
+        -:  951:					if (orders[index]->trader == traders[cursor] && orders[index]->order_id == order_id) {
+        -:  952:						id_valid = 1;
+        -:  953:						break;
+        -:  954:					}
+        -:  955:					index++;
+        -:  956:				}
+        -:  957:
+        -:  958:				if (valid_num_args == 4) {  // AMEND case: <AMEND> <order_id> <qty> <price>
+        -:  959:
+        -:  960:					qty = strtol(arg_array[2], NULL, 10);
+        -:  961:					price = strtol(arg_array[3], NULL, 10);
+        -:  962:					sprintf(msg, "AMENDED %s;", arg_array[1]);
+        -:  963:
+        -:  964:				} else if (valid_num_args == 2) { // CANCEL case: <CANCEL> <order_id>
+        -:  965:
+        -:  966:					qty_valid = 1;
+        -:  967:					price_valid = 1;
+        -:  968:					sprintf(msg, "CANCELLED %s;", arg_array[1]);
+        -:  969:				}
+        -:  970:			}
+        -:  971:
+        -:  972:			// Validates the quantity and prices of relevant orders
+        -:  973:			if (valid_num_args == 5 || valid_num_args == 4) {
+        -:  974:				qty_valid = (qty > 0 && qty < 1000000);
+        -:  975:				price_valid = (price > 0 && price < 1000000);
+        -:  976:			}
+        -:  977:
+        -:  978:			if (id_valid && product_valid && qty_valid && price_valid) {
+        -:  979:				// Inform the trader that their order was accepted
+        -:  980:				if (traders[cursor]->active) {
+        -:  981:					write_pipe(traders[cursor]->exchange_fd, msg);
+        -:  982:					kill(traders[cursor]->pid, SIGUSR1);
+        -:  983:					free(msg);
+        -:  984:				}
+        -:  985:
+        -:  986:				// Increments a given trader's id counter for relevant orders
+        -:  987:				if (strcmp(arg_array[0], "SELL") == 0 || strcmp(arg_array[0], "BUY") == 0) {
+        -:  988:					traders[cursor]->current_order_id++;
+        -:  989:				}
+        -:  990:
+        -:  991:				// Processes orders dependent on their type
+        -:  992:				if (strcmp(arg_array[0], "BUY") == 0) {
+        -:  993:					orders = create_order(BUY, products, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders, traders, time++);
+        -:  994:
+        -:  995:				} else if (strcmp(arg_array[0], "SELL") == 0) {
+        -:  996:					orders = create_order(SELL, products, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders, time++);
+        -:  997:
+        -:  998:				} else if (strcmp(arg_array[0], "AMEND") == 0) {
+        -:  999:					orders = create_order(AMEND, products, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders, time++);
+        -: 1000:
+        -: 1001:				} else if (strcmp(arg_array[0], "CANCEL") == 0) {
+        -: 1002:					orders = create_order(CANCEL, products, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders, time);
+        -: 1003:				}
+        -: 1004:				// Generating and displaying the orderbook for the exchange
+        -: 1005:				generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
+        -: 1006:
+        -: 1007:			} else {
+        -: 1008:				if (traders[cursor]->active) {
+        -: 1009:					// Inform the trader that their order was invalid
+        -: 1010:					sprintf(msg, "INVALID;");
+        -: 1011:					write_pipe(traders[cursor]->exchange_fd, msg);
+        -: 1012:					kill(traders[cursor]->pid, SIGUSR1);
+        -: 1013:					free(msg);
+        -: 1014:				}
+        -: 1015:			}
+        -: 1016:
+        -: 1017:			cursor = 0;
+        -: 1018:			// Deallocates memory allocated to the argument array
+        -: 1019:			while (arg_array[cursor] != NULL) {
+        -: 1020:				free(arg_array[cursor++]);
+        -: 1021:			}
+        -: 1022:			free(arg_array);
+        -: 1023:		}
+        -: 1024:
+        -: 1025:		// Checks if any traders have disconnected
+        -: 1026:		if (disconnect_trader != -1) {
+        -: 1027:			if (disconnect(traders, orders, products, argc)) {
+        -: 1028:				return 0;
+        -: 1029:			}
+        -: 1030:			continue;
+        -: 1031:		}
+        -: 1032:	}
+        -: 1033:}
+        -: 1034:#endif
