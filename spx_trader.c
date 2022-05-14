@@ -34,7 +34,7 @@ int main(int argc, char ** argv) {
     while (1) {
 
       if (valid) {
-        exponent = 0;
+        exponent = 1;
         pause();
 
       } else {
@@ -51,7 +51,7 @@ int main(int argc, char ** argv) {
         nanosleep(&tim , &tim2);
 
         // Break, in the event that the exponent has become excessively large
-        if (exponent == 10) {
+        if (exponent == 15) {
           exponent = 0;
           return -1;
         }
