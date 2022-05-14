@@ -415,8 +415,12 @@ char** read_products_file(char* fp) {
 
 		char* product = (char*) malloc(sizeof(char) * PRODUCT_LENGTH);
 		product = fgets(product, PRODUCT_LENGTH, file);
+
+		if (product == NULL) {
+			return NULL;
+		}
 		// Checks for null or empty lines
-		if (product[0] == '\n' || product[0] == '\0') {
+		if (product[0] == '\n' || product[0] == '\0' || product[0] == '\r') {
 			free(product);
 		} else {
 			products[index++] = strtok(product, "\n");
