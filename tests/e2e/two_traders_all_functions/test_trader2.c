@@ -23,9 +23,6 @@ int main(int argc, char ** argv) {
     int trader_fd = open(path, O_WRONLY);
     FILE* f = fopen("tests/e2e/two_traders_all_functions/trader2.test", "w");
 
-    char* all_recv = malloc(8192);
-    int cursor = 0;
-
     int order_id = 0;
 
     while (running) {
@@ -44,15 +41,6 @@ int main(int argc, char ** argv) {
 
         read(exchange_fd, buf, MAX_INPUT);
         token = strtok(buf, ";");
-        while (token != NULL) {
-          char* tmp = malloc(2*MAX_INPUT);
-          snprintf(tmp, 2*MAX_INPUT, "[Trader %d] Received from SPX: %s;\n", id, buf);
-
-          snprintf(all_recv + cursor, strlen(tmp) + 1, "%s", tmp);
-          cursor += strlen(tmp) + 1;
-          free(tmp);
-          token = strtok(NULL, ";");
-        }
 
         if (!market_open) {
           if (strcmp(buf, "MARKET OPEN;") == 0) {
@@ -69,16 +57,7 @@ int main(int argc, char ** argv) {
 
         if (strcmp(args[1], "SELL") == 0) {
           if (strtol(args[3], NULL, 10) >= QTY_LIMIT) {
-            fprintf(f, "\n\nSPX ---> TRADER\n\n");
-            for (int x = 0; x < 8192; x++) {
-              if (all_recv[x] >= 0 && all_recv[x] <= 177){
-                if (all_recv[x] == '\t') {
-                  continue;
-                }
-                fprintf(f, "%c", all_recv[x]);
-              }
-            }
-            free(all_recv);
+
             fclose(f);
             return 0;
           }

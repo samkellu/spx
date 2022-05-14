@@ -26,3 +26,5 @@
   Then the script runs my cmocka unit tests, which also creates a coverage report for these specific tests, with coverage of ~95%.
 
   Also, note that only write_pipe, read_products_file, and order processing functions are included in the unit tests, as order book functions produce only stdout output and cannot be tested in this way. Similarly, functions such as disconnect, and many error checking components (price/qty/order_id/product validity), residing in main cannot be included, and are excluded from my unit tests, instead being tested primarily in my e2e testcases.
+
+  Also note, for some reason gcov doesnt register the code coverage for my e2e tests on ed, however this is not an issue when running locally. 
