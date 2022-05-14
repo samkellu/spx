@@ -407,7 +407,7 @@ char** read_products_file(char* fp) {
 	fgets(length_str, PRODUCT_LENGTH, file);
 	int file_length = strtol(length_str, NULL, 10) + 1;
 	char** products = (char**) malloc(sizeof(char**) * file_length);
-	products[0] = length_str;
+	products[0] = strtok(length_str, "\n");
 
 	// Reads in as many lines as specified by the file's 1st line
 	int index = 1;
@@ -742,6 +742,7 @@ int disconnect(struct trader** traders, struct order** orders, char** products, 
 	return 0;
 }
 
+#ifndef TESTING
 // Runs the exchange
 int main(int argc, char **argv) {
 
@@ -1026,3 +1027,4 @@ int main(int argc, char **argv) {
 		}
 	}
 }
+#endif
