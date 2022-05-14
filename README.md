@@ -22,7 +22,7 @@
   bash run_tests.sh
   ```
 
-  This will first run all of my e2e tests, which use auto traders to simulate the real use of this exchange, covering almost all code in the program (combined coverage ~96%). Each test prints it's own code coverage as it is completed.
+  This will first run all of my e2e tests, which use auto traders to simulate the real use of this exchange, covering almost all code in the program (combined coverage ~97%). Each test prints it's own code coverage as it is completed.
   Then the script runs my cmocka unit tests, which also creates a coverage report for these specific tests, with coverage of ~95%.
 
   Also, note that only write_pipe, read_products_file, and order processing functions are included in the unit tests, as order book functions produce only stdout output and cannot be tested in this way. Similarly, functions such as disconnect, and many error checking components (price/qty/order_id/product validity), residing in main cannot be included, and are excluded from my unit tests, instead being tested primarily in my e2e testcases.

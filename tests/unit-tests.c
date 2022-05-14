@@ -73,8 +73,8 @@ static void test_create_buy_valid_no_match(void **state) {
   new_trader->position_cost = calloc(sizeof(int), sizeof(int) * 2);
   new_trader->active = 1;
   new_trader->current_order_id = 0;
-  new_trader->exchange_fd = 1;
-  new_trader->trader_fd = 1;
+  new_trader->exchange_fd = 3;
+  new_trader->trader_fd = 3;
 
   struct order** orders = malloc(sizeof(struct order**));
   orders[0] = NULL;
@@ -112,8 +112,8 @@ static void test_create_sell_valid_no_match(void **state) {
   new_trader->position_cost = calloc(sizeof(int), sizeof(int) * 2);
   new_trader->active = 1;
   new_trader->current_order_id = 0;
-  new_trader->exchange_fd = 1;
-  new_trader->trader_fd = 1;
+  new_trader->exchange_fd = 3;
+  new_trader->trader_fd = 3;
 
   struct order** orders = malloc(sizeof(struct order**));
   orders[0] = NULL;
@@ -152,8 +152,8 @@ static void test_match_sell_buy_valid(void **state) {
   new_trader->position_cost = calloc(sizeof(int), sizeof(int) * 2);
   new_trader->active = 1;
   new_trader->current_order_id = 0;
-  new_trader->exchange_fd = 1;
-  new_trader->trader_fd = 1;
+  new_trader->exchange_fd = 3;
+  new_trader->trader_fd = 3;
 
   struct trader* new_trader_2 = malloc(sizeof(struct trader));
   new_trader_2->id = 1;
@@ -161,8 +161,8 @@ static void test_match_sell_buy_valid(void **state) {
   new_trader_2->position_cost = calloc(sizeof(int), sizeof(int) * 2);
   new_trader_2->active = 1;
   new_trader_2->current_order_id = 0;
-  new_trader_2->exchange_fd = 1;
-  new_trader_2->trader_fd = 1;
+  new_trader_2->exchange_fd = 3;
+  new_trader_2->trader_fd = 3;
 
   struct order** orders = malloc(sizeof(struct order**));
   orders[0] = NULL;
@@ -221,8 +221,8 @@ static void test_match_buy_sell_valid(void **state) {
   new_trader->position_cost = calloc(sizeof(int), sizeof(int) * 2);
   new_trader->active = 1;
   new_trader->current_order_id = 0;
-  new_trader->exchange_fd = 1;
-  new_trader->trader_fd = 1;
+  new_trader->exchange_fd = 3;
+  new_trader->trader_fd = 3;
 
   struct trader* new_trader_2 = malloc(sizeof(struct trader));
   new_trader_2->id = 1;
@@ -230,8 +230,8 @@ static void test_match_buy_sell_valid(void **state) {
   new_trader_2->position_cost = calloc(sizeof(int), sizeof(int) * 2);
   new_trader_2->active = 1;
   new_trader_2->current_order_id = 0;
-  new_trader_2->exchange_fd = 1;
-  new_trader_2->trader_fd = 1;
+  new_trader_2->exchange_fd = 3;
+  new_trader_2->trader_fd = 3;
 
   struct order** orders = malloc(sizeof(struct order**));
   orders[0] = NULL;
@@ -290,8 +290,8 @@ static void test_cancel_valid(void **state) {
   new_trader->position_cost = calloc(sizeof(int), sizeof(int) * 2);
   new_trader->active = 1;
   new_trader->current_order_id = 0;
-  new_trader->exchange_fd = 1;
-  new_trader->trader_fd = 1;
+  new_trader->exchange_fd = 3;
+  new_trader->trader_fd = 3;
 
   struct order** orders = malloc(sizeof(struct order**));
   orders[0] = NULL;
@@ -355,8 +355,8 @@ static void test_amend_valid(void **state) {
   new_trader->position_cost = calloc(sizeof(int), sizeof(int) * 2);
   new_trader->active = 1;
   new_trader->current_order_id = 0;
-  new_trader->exchange_fd = 1;
-  new_trader->trader_fd = 1;
+  new_trader->exchange_fd = 3;
+  new_trader->trader_fd = 3;
 
   struct order** orders = malloc(sizeof(struct order**));
   orders[0] = NULL;
@@ -416,8 +416,8 @@ static void test_amend_match_valid(void **state) {
   new_trader->position_cost = calloc(sizeof(int), sizeof(int) * 2);
   new_trader->active = 1;
   new_trader->current_order_id = 0;
-  new_trader->exchange_fd = 1;
-  new_trader->trader_fd = 1;
+  new_trader->exchange_fd = 3;
+  new_trader->trader_fd = 3;
 
   struct trader* new_trader_2 = malloc(sizeof(struct trader));
   new_trader_2->id = 1;
@@ -425,8 +425,8 @@ static void test_amend_match_valid(void **state) {
   new_trader_2->position_cost = calloc(sizeof(int), sizeof(int) * 2);
   new_trader_2->active = 1;
   new_trader_2->current_order_id = 0;
-  new_trader_2->exchange_fd = 1;
-  new_trader_2->exchange_fd = 1;
+  new_trader_2->exchange_fd = 3;
+  new_trader_2->exchange_fd = 3;
 
   struct order** orders = malloc(sizeof(struct order**));
   orders[0] = NULL;
@@ -461,8 +461,6 @@ static void test_amend_match_valid(void **state) {
 
   orders = create_order(AMEND, products, new_trader, 0, NULL, 3, 101, &amend_order, orders, traders, 2);
 
-  printf("huh\n");
-  fflush(stdout);
   assert_true(orders[1] == NULL);
   assert_true(orders[0] != NULL);
   assert_true(orders[0]->type == BUY);
