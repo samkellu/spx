@@ -511,10 +511,10 @@ struct trader* initialise_trader(char* path, int index, int num_products) {
 
 	// If the process is the parent, returns the new trader struct
 	if (new_trader->pid > 0) {
-		// Waits to catchj failure signal
+		// Waits to catch failure signal
 		struct timespec tim, tim2;
 		tim.tv_sec = 0;
-		tim.tv_nsec = 100000;
+		tim.tv_nsec = 1000000;
 		nanosleep(&tim , &tim2);
 
 		return new_trader;
