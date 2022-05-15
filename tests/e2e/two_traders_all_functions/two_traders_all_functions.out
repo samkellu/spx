@@ -2,12 +2,12 @@
 [SPX] Trading 2 products: GPU Router
 [SPX] Created FIFO /tmp/spx_exchange_0
 [SPX] Created FIFO /tmp/spx_trader_0
-[SPX] Starting trader 0 (tests/e2e/two_traders_all_functions/test_trader1)
+[SPX] Starting trader 0 (tests/E2E/two_traders_all_functions/test_trader1)
 [SPX] Connected to /tmp/spx_exchange_0
 [SPX] Connected to /tmp/spx_trader_0
 [SPX] Created FIFO /tmp/spx_exchange_1
 [SPX] Created FIFO /tmp/spx_trader_1
-[SPX] Starting trader 1 (tests/e2e/two_traders_all_functions/test_trader2)
+[SPX] Starting trader 1 (tests/E2E/two_traders_all_functions/test_trader2)
 [SPX] Connected to /tmp/spx_exchange_1
 [SPX] Connected to /tmp/spx_trader_1
 [SPX] [T0] Parsing command: <SELL 0 GPU 30 500>

@@ -17,7 +17,7 @@ int main(int argc, char ** argv) {
   int id = strtol(argv[1], NULL, 10);
   char path[PATH_LENGTH];
 
-  FILE* f = fopen("tests/e2e/one_trader_all_functions/trader.test", "w");
+  FILE* f = fopen("tests/E2E/one_trader_all_functions/trader.test", "w");
 
   sprintf(path, "/tmp/spx_exchange_%d", id);
   int exchange_fd = open(path, O_RDONLY);

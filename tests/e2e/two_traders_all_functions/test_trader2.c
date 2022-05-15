@@ -21,7 +21,7 @@ int main(int argc, char ** argv) {
     int exchange_fd = open(path, O_RDONLY);
     sprintf(path, "/tmp/spx_trader_%d", id);
     int trader_fd = open(path, O_WRONLY);
-    FILE* f = fopen("tests/e2e/two_traders_all_functions/trader2.test", "w");
+    FILE* f = fopen("tests/E2E/two_traders_all_functions/trader2.test", "w");
 
     int order_id = 0;
 

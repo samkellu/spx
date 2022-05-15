@@ -6,10 +6,10 @@ NC='\033[0m'
 
 test_name="invalid_products_path"
 
-./spx_exchange "invalid_products_path.txt" "./spx_trader" | tee tests/e2e/$test_name/$test_name.test
+./spx_exchange "invalid_products_path.txt" "./spx_trader" | tee tests/E2E/$test_name/$test_name.test
 
-diff tests/e2e/$test_name/$test_name.out tests/e2e/$test_name/$test_name.test && echo -e "${GREEN}Test $test_name passed.${NC}" || echo -e "${RED}Test $test_name failed.${NC}"
+diff tests/E2E/$test_name/$test_name.out tests/E2E/$test_name/$test_name.test && echo -e "${GREEN}Test $test_name passed.${NC}" || echo -e "${RED}Test $test_name failed.${NC}"
 
 gcov ./spx_exchange
 
-rm tests/e2e/$test_name/$test_name.test
+rm tests/E2E/$test_name/$test_name.test

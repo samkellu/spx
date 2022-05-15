@@ -6,11 +6,10 @@ NC='\033[0m'
 
 test_name="no_args"
 
-./spx_exchange &> tests/e2e/$test_name/$test_name.out
-./spx_exchange &> tests/e2e/$test_name/$test_name.test
+./spx_exchange | tee tests/E2E/$test_name/$test_name.test
 
-diff tests/e2e/$test_name/$test_name.out tests/e2e/$test_name/$test_name.test && echo -e "${GREEN}Test $test_name passed.${NC}" || echo -e "${RED}Test $test_name failed.${NC}"
+diff tests/E2E/$test_name/$test_name.out tests/E2E/$test_name/$test_name.test && echo -e "${GREEN}Test $test_name passed.${NC}" || echo -e "${RED}Test $test_name failed.${NC}"
 
 gcov ./spx_exchange
 
-rm tests/e2e/$test_name/$test_name.test
+rm tests/E2E/$test_name/$test_name.test
