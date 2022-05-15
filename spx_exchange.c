@@ -615,7 +615,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 
 			// Finds the current most expensive level
 			for (int level = 0; level < num_levels; level++) {
-				if (levels[level].price > max || (levels[level].price == max && levels[level].type < levels[max_index].type)) {
+				if (levels[level].price > max || (levels[level].price == max && levels[level].num > levels[max_index].num)) {
 					max_index = level;
 					max = levels[level].price;
 				}

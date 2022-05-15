@@ -211,7 +211,7 @@ static void test_match_sell_buy_valid(void **state) {
   free(orders);
 }
 
-// Tests the validity of a buy order, then tests the validity of a sell order
+// Tests the validity of a buy order, then matches it with a new sell order
 // and checks that it is processed correctly
 static void test_match_buy_sell_valid(void **state) {
 
