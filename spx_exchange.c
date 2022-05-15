@@ -38,8 +38,10 @@ int write_pipe(int fd, char* message) {
 	return -1;
 }
 // Creates an order as specified by a trader connected to the exchange
-struct order** create_order(int type, char** products, struct trader* trader, int order_id, char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*, \
-															struct order**, int), struct order** orders, struct trader** traders, int time) {
+struct order** create_order(int type, char** products, struct trader* trader, int order_id,\
+	 char product[PRODUCT_LENGTH], int qty, int price, struct order** (*operation)(struct order*,\
+		struct order**, int), struct order** orders, struct trader** traders, int time) {
+
  // Initialises a new order
 	struct order* new_order = malloc(sizeof(struct order));
 	new_order->type = type;
@@ -602,7 +604,8 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 		}
 
 		// Prints the level information for the current product
-		printf("%s\tProduct: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product], num_buy_levels, num_sell_levels);
+		printf("%s\tProduct: %s; Buy levels: %d; Sell levels: %d\n", LOG_PREFIX, products[product],\
+					num_buy_levels, num_sell_levels);
 
 		// Prints all levels for the current product, from the most expensive to the least
 		while (num_levels > 0) {
@@ -612,7 +615,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 
 			// Finds the current most expensive level
 			for (int level = 0; level < num_levels; level++) {
-				if (levels[level].price > max) {
+				if (levels[level].price > max || (levels[level].price == max && levels[level].type < levels[max_index].type)) {
 					max_index = level;
 					max = levels[level].price;
 				}
@@ -658,7 +661,8 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 
 		// Prints position data for each product for the current trader
 		for (int product_num = 0; product_num < num_products; product_num++) {
-			printf("%s %ld ($%ld)", products[product_num + 1], traders[cursor]->position_qty[product_num], traders[cursor]->position_cost[product_num]);
+			printf("%s %ld ($%ld)", products[product_num + 1], traders[cursor]->position_qty[product_num],\
+			 			traders[cursor]->position_cost[product_num]);
 			if (product_num != num_products - 1) {
 				printf(", ");
 			} else {
@@ -979,16 +983,20 @@ int main(int argc, char **argv) {
 
 				// Processes orders dependent on their type
 				if (strcmp(arg_array[0], "BUY") == 0) {
-					orders = create_order(BUY, products, traders[cursor], order_id, arg_array[2], qty, price, &buy_order, orders, traders, time++);
+					orders = create_order(BUY, products, traders[cursor], order_id, arg_array[2],\
+						 										qty, price, &buy_order, orders, traders, time++);
 
 				} else if (strcmp(arg_array[0], "SELL") == 0) {
-					orders = create_order(SELL, products, traders[cursor], order_id, arg_array[2], qty, price, &sell_order, orders, traders, time++);
+					orders = create_order(SELL, products, traders[cursor], order_id, arg_array[2],\
+						 										qty, price, &sell_order, orders, traders, time++);
 
 				} else if (strcmp(arg_array[0], "AMEND") == 0) {
-					orders = create_order(AMEND, products, traders[cursor], order_id, NULL, qty, price, &amend_order, orders, traders, time++);
+					orders = create_order(AMEND, products, traders[cursor], order_id, NULL, qty,\
+						 										price, &amend_order, orders, traders, time++);
 
 				} else if (strcmp(arg_array[0], "CANCEL") == 0) {
-					orders = create_order(CANCEL, products, traders[cursor], order_id, NULL, 0, 0, &cancel_order, orders, traders, time);
+					orders = create_order(CANCEL, products, traders[cursor], order_id, NULL, 0, 0,\
+						 										&cancel_order, orders, traders, time++);
 				}
 				// Generating and displaying the orderbook for the exchange
 				generate_orderbook(strtol(products[0], NULL, 10), products, orders, traders);
