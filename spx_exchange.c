@@ -7,21 +7,20 @@
 
 #include "spx_exchange.h"
 
-int read_trader = -1;
-int init_flag = 0;
-int disconnect_trader = -1;
-int exit_flag = 0;
-long total_fees = 0;
+int READ_TRADER = -1;
+int DISCONNECT_TRADER = -1;
+int EXIT_FLAG = 0;
+long TOTAL_FEES = 0;
 
 #ifndef TESTING
 // Signal handler for SIGUSR1 (read pipe), SIGUSR2 (invalid binary) and SIGCHLD (trader disconnected)
 void read_sig(int signo, siginfo_t *si, void *uc) {
 	if (signo == SIGUSR1) {
-		read_trader = si->si_pid;
+		READ_TRADER = si->si_pid;
 	} else if (signo == SIGCHLD) {
-		disconnect_trader = si->si_pid;
+		DISCONNECT_TRADER = si->si_pid;
 	} else if (signo == SIGUSR2) {
-		exit_flag = 1;
+		EXIT_FLAG = 1;
 	}
 }
 #endif
@@ -192,12 +191,12 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		}
 
 		// Calculates the cost and fee associated with the trade
-		long cost = (long)qty * cheapest_sell->price;
+		long long cost = (long)qty * cheapest_sell->price;
 		long fee = (long)roundl((long)cost * FEE_AMOUNT);
-		total_fees += fee;
+		TOTAL_FEES += fee;
 
 		// Prints the order matched message
-		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%ld, fee: $%ld.\n", LOG_PREFIX, cheapest_sell->order_id,\
+		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%lld, fee: $%ld.\n", LOG_PREFIX, cheapest_sell->order_id,\
 		cheapest_sell->trader->id, new_order->order_id, new_order->trader->id, cost, fee);
 
 		char msg[MAX_INPUT];
@@ -290,12 +289,12 @@ struct order** sell_order(struct order* new_order, struct order** orders, int po
 		}
 
 		// Calculates the cost and fee associated with the trade
-		long cost = (long)qty * highest_buy->price;
+		long long cost = (long)qty * highest_buy->price;
 		long fee = (long)roundl((long)cost * FEE_AMOUNT);
-		total_fees += fee;
+		TOTAL_FEES += fee;
 
 		// Prints the matched order message
-		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%ld, fee: $%ld.\n", LOG_PREFIX, highest_buy->order_id,\
+		printf("%s Match: Order %d [T%d], New Order %d [T%d], value: $%lld, fee: $%ld.\n", LOG_PREFIX, highest_buy->order_id,\
 		highest_buy->trader->id, new_order->order_id, new_order->trader->id, cost, fee);
 
 		char msg[MAX_INPUT];
@@ -678,7 +677,7 @@ int disconnect(struct trader** traders, struct order** orders, char** products, 
 
 	// Locates the trader that has disconnected
 	while (traders[cursor] != NULL) {
-		if (disconnect_trader == traders[cursor]->pid) {
+		if (DISCONNECT_TRADER == traders[cursor]->pid) {
 			// Displays d/c message and set's the trader to be inactive
 			printf("%s Trader %d disconnected\n", LOG_PREFIX, traders[cursor]->id);
 			traders[cursor]->active = 0;
@@ -690,12 +689,12 @@ int disconnect(struct trader** traders, struct order** orders, char** products, 
 		cursor++;
 	}
 	// Resetting global flags
-	disconnect_trader = -1;
+	DISCONNECT_TRADER = -1;
 
 	// Ends the exchange if there are no traders active
 	if (count_active == 0) {
 		printf("%s Trading completed\n", LOG_PREFIX);
-		printf("%s Exchange fees collected: $%ld\n", LOG_PREFIX, total_fees);
+		printf("%s Exchange fees collected: $%ld\n", LOG_PREFIX, TOTAL_FEES);
 
 		// Deallocates all memory allocated to orders
 		cursor = 0;
@@ -789,7 +788,7 @@ int main(int argc, char **argv) {
 		traders[trader-2] = initialise_trader(argv[trader], trader-2, strtol(products[0], NULL, 10));
 
 		// Gracefully exists in the event that a trader could not be started
-		if (exit_flag || traders[trader - 2] == NULL) {
+		if (EXIT_FLAG || traders[trader - 2] == NULL) {
 
 			int num_products = strtol(products[0], NULL, 10);
 			for (int cursor = 0; cursor <= num_products; cursor++) {
@@ -835,21 +834,21 @@ int main(int argc, char **argv) {
 	while (1) {
 
 		// Waits for signals from traders before checking flags to minimise CPU usage
-		if (read_trader == -1 && disconnect_trader == -1) {
+		if (READ_TRADER == -1 && DISCONNECT_TRADER == -1) {
 			pause();
 		}
 
 		// Locates the trader that wrote to the exchange via PID
-		if (read_trader != -1) {
+		if (READ_TRADER != -1) {
 			// Reset global flag
 
 			int cursor = 0;
 			char** arg_array;
 			while (traders[cursor] != NULL) {
-				if (traders[cursor]->pid == read_trader && traders[cursor]->active) {
+				if (traders[cursor]->pid == READ_TRADER && traders[cursor]->active) {
 					// Get input arguments from the trader's named pipe
 					arg_array = take_input(traders[cursor]->trader_fd);
-					read_trader = -1;
+					READ_TRADER = -1;
 					break;
 				}
 				cursor++;
@@ -1013,7 +1012,7 @@ int main(int argc, char **argv) {
 		}
 
 		// Checks if any traders have disconnected
-		if (disconnect_trader != -1) {
+		if (DISCONNECT_TRADER != -1) {
 			if (disconnect(traders, orders, products, argc)) {
 				return 0;
 			}

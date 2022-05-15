@@ -1,10 +1,10 @@
 #include "spx_trader.h"
 #include "spx_common.h"
 
-int read_flag = 0;
+int READ_FLAG = 0;
 
 void sig_read(int errno) {
-  read_flag = 1;
+  READ_FLAG = 1;
   return;
 }
 
@@ -15,6 +15,7 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
+    // Setup
     signal(SIGUSR1, sig_read);
 
     pid_t ppid = getppid();
@@ -33,6 +34,8 @@ int main(int argc, char ** argv) {
 
     while (1) {
 
+      // Pauses to save cpu resources if the previous order has been
+      // approved
       if (valid) {
         exponent = 1;
         pause();
@@ -57,9 +60,10 @@ int main(int argc, char ** argv) {
         }
       }
 
-      if (read_flag) {
+      // Reads the message sent to the trader by the exchange
+      if (READ_FLAG) {
 
-        read_flag = 0;
+        READ_FLAG = 0;
         char buf[MAX_INPUT] = "";
         char* token;
         char** args = malloc(0);
@@ -78,6 +82,7 @@ int main(int argc, char ** argv) {
           token = strtok(NULL, " ");
         }
 
+        // Checks if the message states that the previous order was accepted
         if (strcmp(args[0], "ACCEPTED") == 0) {
           char* tmp = malloc(MAX_TRADERS_BYTES);
           snprintf(tmp, MAX_TRADERS_BYTES, "%d;", order_id);
@@ -87,6 +92,7 @@ int main(int argc, char ** argv) {
           }
         }
 
+        // Checks if the message indicates that a new sell order has been placed
         if (strcmp(args[1], "SELL") == 0) {
           if (strtol(args[3], NULL, 10) >= QTY_LIMIT) {
             for (int arg_num = 0; arg_num < arg_counter; arg_num++) {
@@ -98,7 +104,7 @@ int main(int argc, char ** argv) {
 
           if (valid) {
 
-
+            // Places a matching buy order for the recently placed sell order
             char* msg = malloc(MAX_INPUT);
             snprintf(msg, MAX_INPUT, "BUY %d %s %s %s", order_id, args[2], args[3], args[4]);
             write(trader_fd, msg, strlen(msg));
@@ -107,6 +113,7 @@ int main(int argc, char ** argv) {
           }
         }
 
+        // Frees argument array
         for (int arg_num = 0; arg_num < arg_counter; arg_num++) {
           free(args[arg_num]);
         }
