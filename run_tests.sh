@@ -7,7 +7,7 @@ NC='\033[0m'
 
 make e2etesting
 
-for test in tests/E2E/*
+for test in tests/e2e/*
 do
   test_name=$(echo $test | cut -d / -f3)
 
