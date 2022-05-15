@@ -193,8 +193,8 @@ static void test_match_sell_buy_valid(void **state) {
   assert_true(orders[0]->trader == new_trader);
   assert_true(orders[0]->time == 0);
   assert_true(strcmp(orders[0]->product, "Burger") == 0);
-  assert_true(total_fees == 1);
-  total_fees = 0;
+  assert_true(TOTAL_FEES == 1);
+  TOTAL_FEES = 0;
 
   int cursor = 0;
   while (traders[cursor] != NULL) {
@@ -262,8 +262,8 @@ static void test_match_buy_sell_valid(void **state) {
   assert_true(orders[0]->trader == new_trader_2);
   assert_true(orders[0]->time == 0);
   assert_true(strcmp(orders[0]->product, "Burger") == 0);
-  assert_true(total_fees == 1);
-  total_fees = 0;
+  assert_true(TOTAL_FEES == 1);
+  TOTAL_FEES = 0;
 
   int cursor = 0;
   while (traders[cursor] != NULL) {
@@ -327,8 +327,8 @@ static void test_cancel_valid(void **state) {
 
   assert_true(orders[1] == NULL);
   assert_true(orders[0] != NULL);
-  assert_true(total_fees == 0);
-  total_fees = 0;
+  assert_true(TOTAL_FEES == 0);
+  TOTAL_FEES = 0;
 
   int cursor = 0;
   while (traders[cursor] != NULL) {
@@ -388,8 +388,8 @@ static void test_amend_valid(void **state) {
   assert_true(orders[0]->trader == new_trader);
   assert_true(orders[0]->time == 1);
   assert_true(strcmp(orders[0]->product, "Burger") == 0);
-  assert_true(total_fees == 0);
-  total_fees = 0;
+  assert_true(TOTAL_FEES == 0);
+  TOTAL_FEES = 0;
 
   int cursor = 0;
   while (traders[cursor] != NULL) {
@@ -470,8 +470,8 @@ static void test_amend_match_valid(void **state) {
   assert_true(orders[0]->trader == new_trader);
   assert_true(orders[0]->time == 2);
   assert_true(strcmp(orders[0]->product, "Burger") == 0);
-  assert_true(total_fees == 2);
-  total_fees = 0;
+  assert_true(TOTAL_FEES == 2);
+  TOTAL_FEES = 0;
 
   int cursor = 0;
   while (traders[cursor] != NULL) {
