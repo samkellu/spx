@@ -203,15 +203,6 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 
 		char msg[MAX_INPUT];
 
-		if (cheapest_sell->trader->active) {
-			// Inform trader that their order has been filled
-			snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->order_id, qty);
-			write_pipe(cheapest_sell->trader->exchange_fd, msg);
-			kill(cheapest_sell->trader->pid, SIGUSR1);
-		}
-		// Update position values
-		cheapest_sell->trader->position_qty[pos_index] -= qty;
-		cheapest_sell->trader->position_cost[pos_index] += cost;
 
 		if (new_order->trader->active) {
 			// Inform initiating trader that their order has been filled
@@ -222,6 +213,16 @@ struct order** buy_order(struct order* new_order, struct order** orders, int pos
 		// Update position values
 		new_order->trader->position_qty[pos_index] += qty;
 		new_order->trader->position_cost[pos_index] -= (cost + fee);
+
+		if (cheapest_sell->trader->active) {
+			// Inform trader that their order has been filled
+			snprintf(msg, MAX_INPUT, "FILL %d %d;", cheapest_sell->order_id, qty);
+			write_pipe(cheapest_sell->trader->exchange_fd, msg);
+			kill(cheapest_sell->trader->pid, SIGUSR1);
+		}
+		// Update position values
+		cheapest_sell->trader->position_qty[pos_index] -= qty;
+		cheapest_sell->trader->position_cost[pos_index] += cost;
 
 		// Deletes the matched order if it is now empty
 		if (cheapest_sell->qty == 0) {
@@ -615,7 +616,7 @@ void generate_orderbook(int num_products, char** products, struct order** orders
 
 			// Finds the current most expensive level
 			for (int level = 0; level < num_levels; level++) {
-				if (levels[level].price > max || (levels[level].price == max && levels[level].num > levels[max_index].num)) {
+				if (levels[level].price > max) {
 					max_index = level;
 					max = levels[level].price;
 				}
