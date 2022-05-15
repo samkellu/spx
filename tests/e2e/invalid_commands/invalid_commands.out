@@ -2,7 +2,7 @@
 [SPX] Trading 2 products: GPU Router
 [SPX] Created FIFO /tmp/spx_exchange_0
 [SPX] Created FIFO /tmp/spx_trader_0
-[SPX] Starting trader 0 (tests/E2E/invalid_commands/test_trader)
+[SPX] Starting trader 0 (tests/e2e/invalid_commands/test_trader)
 [SPX] Connected to /tmp/spx_exchange_0
 [SPX] Connected to /tmp/spx_trader_0
 [SPX] [T0] Parsing command: <INVALID>
